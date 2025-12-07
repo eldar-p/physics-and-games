@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Спуск на лыжах: ТРЕНИЕ</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 15px;
+      background: #0d1b2a;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #e0e1dd;
+    }
+
+    #gameCanvas {
+      background: linear-gradient(to bottom, #64b5f6, #bbdefb);
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      display: block;
+    }
+
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+
+    #info {
+      margin-top: 15px;
+      background: #1b263b;
+      padding: 14px;
+      border-radius: 10px;
+      max-width: 400px;
+      font-size: 13px;
+      line-height: 1.5;
+      border-left: 4px solid #4cc9f0;
+    }
+
+    .formula {
+      background: #0d1b2a;
+      padding: 5px 10px;
+      border-radius: 5px;
+      display: inline-block;
+      font-family: monospace;
+      margin: 5px 0;
+      color: #f1faee;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<div id="ui">Монет: <span id="coins">0</span> | Дистанция: <span id="distance">0</span> м</div>
+
+<div id="info">
+  <h3>Что такое ТРЕНИЕ?</h3>
+  <p>
+    <strong>Трение</strong> — это сила, которая <strong>замедляет движение</strong> при контакте поверхностей.
+    Чем «шершавее» поверхность — тем больше трение.
+  </p>
+  <p>
+Трение — это физическое явление сопротивления движению одного тела по поверхности другого (или внутри среды), возникающее из-за шероховатости поверхностей и межмолекулярного взаимодействия, которое проявляется как сила трения, препятствующая движению
+. Оно бывает разных видов: трение покоя (удерживает тела), трение скольжения (при скольжении) и трение качения (при катании), а его причина – микроскопические неровности и притяжение атомов. 
+Что такое трение
+
+    Это механическое взаимодействие двух соприкасающихся тел.
+    Это сила сопротивления, которая появляется, когда одно тело пытается переместиться относительно другого
+  </p>
+  <p>
+    <span class="formula">F<sub>тр</sub> = μ · N</span> — сила трения = коэффициент трения × сила нормальной реакции  
+    <span class="formula">a = –μ · g</span> — ускорение торможения (отрицательное!)
+  </p>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const coinsEl = document.getElementById('coins');
+  const distanceEl = document.getElementById('distance');
+
+  // Игрок
+  const player = {
+    x: canvas.width / 2,
+    y: canvas.height - 80,
+    radius: 12,
+    speedX: 0,
+    baseFriction: 0.94,
+    currentFriction: 0.94
+  };
+
+  let distance = 0;
+  let coins = 0;
+  let obstacles = [];
+  let coinsList = [];
+
+  // Интервалы спавна (в "условных метрах")
+  let nextObstacleAt = 0;
+  let nextCoinAt = 0;
+
+  // Управление
+  const keys = { left: false, right: false };
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') keys.left = true;
+    if (e.key === 'ArrowRight') keys.right = true;
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft') keys.left = false;
+    if (e.key === 'ArrowRight') keys.right = false;
+  });
+
+  // Спавн препятствий
+  function spawnObstacle() {
+    const types = ['tree', 'snow', 'trash', 'bush', 'ice'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const lanes = [100, 200, 300];
+    const x = lanes[Math.floor(Math.random() * lanes.length)];
+
+    obstacles.push({
+      x,
+      y: -40,
+      width: 36,
+      height: 36,
+      type
+    });
+
+    // Следующее препятствие через 80–150 "метров"
+    nextObstacleAt = distance + 80 + Math.random() * 70;
+  }
+
+  // Спавн монет
+  function spawnCoin() {
+    const lanes = [100, 200, 300];
+    const x = lanes[Math.floor(Math.random() * lanes.length)];
+    coinsList.push({ x, y: -30, radius: 14 });
+    // Следующая монета через 50–100 метров
+    nextCoinAt = distance + 50 + Math.random() * 50;
+  }
+
+  // Обновление
+  function update() {
+    distance += 1.2;
+    distanceEl.textContent = Math.floor(distance);
+
+    // Спавн по дистанции
+    if (distance >= nextObstacleAt) spawnObstacle();
+    if (distance >= nextCoinAt) spawnCoin();
+
+    // Движение монет
+    for (let i = coinsList.length - 1; i >= 0; i--) {
+      const c = coinsList[i];
+      c.y += 5 + distance * 0.001;
+      if (c.y > canvas.height + 30) {
+        coinsList.splice(i, 1);
+        continue;
+      }
+      // Сбор
+      const dx = player.x - c.x;
+      const dy = player.y - c.y;
+      if (Math.hypot(dx, dy) < player.radius + c.radius) {
+        coins++;
+        coinsEl.textContent = coins;
+        coinsList.splice(i, 1);
+      }
+    }
+
+    // Движение препятствий
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i];
+      o.y += 5 + distance * 0.001;
+      if (o.y > canvas.height + 30) {
+        obstacles.splice(i, 1);
+        continue;
+      }
+
+      // Проверка контакта
+      const dx = player.x - (o.x + o.width / 2);
+      const dy = player.y - (o.y + o.height / 2);
+      if (Math.abs(dx) < player.radius + o.width / 2 && Math.abs(dy) < player.radius + o.height / 2) {
+        if (o.type === 'snow') player.currentFriction = 0.80;
+        else if (o.type === 'tree' || o.type === 'bush') player.currentFriction = 0.88;
+        else if (o.type === 'trash') player.currentFriction = 0.91;
+        else if (o.type === 'ice') player.currentFriction = 0.99;
+      }
+    }
+
+    // Управление и трение
+    if (keys.left) player.speedX = Math.max(player.speedX - 0.5, -8);
+    if (keys.right) player.speedX = Math.min(player.speedX + 0.5, 8);
+    
+    player.speedX *= player.currentFriction;
+    player.currentFriction = player.baseFriction; // сброс к базовому
+
+    player.x += player.speedX;
+    player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+  }
+
+  // Рендер
+  function draw() {
+    ctx.fillStyle = '#bbdefb';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Движущиеся снежные полосы
+    ctx.fillStyle = '#e3f2fd';
+    for (let i = 0; i < 5; i++) {
+      const y = (distance * 1.2 + i * 130) % (canvas.height + 130) - 65;
+      ctx.fillRect(0, y, canvas.width, 3);
+    }
+
+    // Монеты
+    for (const c of coinsList) {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+      ctx.strokeStyle = '#FFA500';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c.x - 5, c.y - 5, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+
+    // Препятствия
+    for (const o of obstacles) {
+      if (o.type === 'tree') {
+        ctx.fillStyle = '#388e3c';
+        ctx.fillRect(o.x, o.y, o.width, o.height);
+        ctx.fillStyle = '#1b5e20';
+        ctx.beginPath();
+        ctx.arc(o.x + o.width/2, o.y, 18, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (o.type === 'snow') {
+        ctx.fillStyle = '#e0f7fa';
+        ctx.beginPath();
+        ctx.arc(o.x + o.width/2, o.y + o.height/2, o.width/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#b2ebf2';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else if (o.type === 'trash') {
+        ctx.fillStyle = '#795548';
+        ctx.fillRect(o.x, o.y, o.width, o.height);
+        ctx.fillStyle = '#5d4037';
+        ctx.fillRect(o.x + 6, o.y + 6, o.width - 12, 6);
+      } else if (o.type === 'bush') {
+        ctx.fillStyle = '#4caf50';
+        ctx.beginPath();
+        ctx.arc(o.x + o.width/2, o.y + o.height/2, o.width/2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (o.type === 'ice') {
+        ctx.fillStyle = '#81d4fa';
+        ctx.beginPath();
+        ctx.arc(o.x + o.width/2, o.y + o.height/2, o.width/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#4fc3f7';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // Игрок
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#e91e63';
+    ctx.fill();
+    ctx.strokeStyle = '#c2185b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Игровой цикл
+  function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+</script>
+
+</body>
+</html>
