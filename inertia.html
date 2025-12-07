@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Бильярд и инерция</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #1a1a2e;
+      color: #f1f1f1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #16c79a;
+    }
+
+    #controls {
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    button {
+      padding: 8px 16px;
+      background: #3a86ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+
+    button:hover {
+      background: #2a6bd9;
+    }
+
+    canvas {
+      background: #0a5f20;
+      border: 6px solid #5d4037;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+      margin-bottom: 20px;
+    }
+
+    #info {
+      max-width: 620px;
+      background: #16213e;
+      padding: 16px;
+      border-radius: 10px;
+      border-left: 4px solid #16c79a;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .formula {
+      background: #0d1b2a;
+      padding: 8px;
+      border-radius: 6px;
+      font-family: monospace;
+      margin: 8px 0;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎱 Бильярд: инерция в действии</h1>
+<div id="controls">
+  <button onclick="resetGame()">Сбросить</button>
+  <p>Кликните на белый шар → потяните → отпустите, чтобы ударить!</p>
+</div>
+
+<canvas id="table"></canvas>
+
+<div id="info">
+  <h3>Что такое инерция?</h3>
+  <p>
+    <strong>Инерция</strong> — это свойство тела сохранять состояние покоя или равномерного прямолинейного движения до тех пор, пока на него не подействует внешняя сила.
+  </p>
+  <p>
+    Инерция напрямую связана с <strong>массой</strong>: чем больше масса тела, тем больше его инерция.
+  </p>
+  
+  <h4>Основные формулы:</h4>
+  <p>
+    <span class="formula">F = m · a</span> — Второй закон Ньютона. Сила = масса × ускорение.
+  </p>
+  <p>
+    <span class="formula">p = m · v</span> — Импульс тела. Импульс = масса × скорость.
+  </p>
+  <p>
+    При столкновении (как в бильярде) <strong>импульс сохраняется</strong>:
+    <span class="formula">m₁v₁ + m₂v₂ = m₁v₁' + m₂v₂'</span>
+  </p>
+  <p>
+    В нашей игре все шары имеют одинаковую массу, поэтому при лобовом ударе покоящийся шар "забирает" всю скорость движущегося — это и есть проявление <strong>инерции и сохранения импульса</strong>.
+  </p>
+</div>
+
+<script>
+  const canvas = document.getElementById('table');
+  const ctx = canvas.getContext('2d');
+
+  // Размеры стола
+  const tableWidth = 600;
+  const tableHeight = 300;
+  const ballRadius = 12;
+  const friction = 0.985; // трение
+
+  canvas.width = tableWidth;
+  canvas.height = tableHeight;
+
+  // Лузы (6 штук)
+  const pockets = [
+    { x: 0, y: 0, r: 20 }, // верх-лево
+    { x: tableWidth, y: 0, r: 20 }, // верх-право
+    { x: 0, y: tableHeight, r: 20 }, // низ-лево
+    { x: tableWidth, y: tableHeight, r: 20 }, // низ-право
+    { x: tableWidth / 2, y: 0, r: 20 }, // верх-центр
+    { x: tableWidth / 2, y: tableHeight, r: 20 } // низ-центр
+  ];
+
+  // ------ Шары ------
+  let balls = [];
+
+  function createBall(x, y, color, isCue = false) {
+    return {
+      x, y,
+      vx: 0, vy: 0,
+      radius: ballRadius,
+      color,
+      isCue,
+      active: true
+    };
+  }
+
+  function initBalls() {
+    balls = [];
+    balls.push(createBall(150, tableHeight / 2, '#ffffff', true));
+
+    const startX = 450;
+    const startY = tableHeight / 2;
+    const dx = ballRadius * 2.1;
+    const dy = ballRadius * 1.8;
+    const colors = ['#ff0000', '#0000ff', '#ffff00', '#00ff00', '#ff00ff'];
+    let idx = 0;
+
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col <= row; col++) {
+        if (idx < colors.length) {
+          const x = startX + row * dx;
+          const y = startY - (row * dy) / 2 + col * dy;
+          balls.push(createBall(x, y, colors[idx]));
+          idx++;
+        }
+      }
+    }
+  }
+
+  // ------ Управление ударом ------
+  let isAiming = false;
+  let aimStart = { x: 0, y: 0 }; // центр битка
+  let aimVector = { x: 0, y: 0 }; // направление удара
+
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const cueBall = balls.find(b => b.isCue && b.active);
+    if (!cueBall) return;
+
+    const dx = mx - cueBall.x;
+    const dy = my - cueBall.y;
+    if (Math.sqrt(dx * dx + dy * dy) <= cueBall.radius) {
+      isAiming = true;
+      aimStart.x = cueBall.x;
+      aimStart.y = cueBall.y;
+      aimVector.x = 0;
+      aimVector.y = 0;
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isAiming) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    // Вектор от битка к мыши — это направление удара
+    aimVector.x = mx - aimStart.x;
+    aimVector.y = my - aimStart.y;
+
+    // Ограничиваем длину (макс. сила)
+    const maxLen = 100;
+    const len = Math.sqrt(aimVector.x ** 2 + aimVector.y ** 2);
+    if (len > maxLen) {
+      aimVector.x = (aimVector.x / len) * maxLen;
+      aimVector.y = (aimVector.y / len) * maxLen;
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    if (isAiming) {
+      const cueBall = balls.find(b => b.isCue);
+      if (cueBall) {
+        const power = 0.12;
+        cueBall.vx = aimVector.x * power;
+        cueBall.vy = aimVector.y * power;
+      }
+      isAiming = false;
+    }
+  });
+
+  // ------ Логика луз ------
+  function checkPockets() {
+    for (let ball of balls) {
+      if (!ball.active) continue;
+      for (let pocket of pockets) {
+        const dx = ball.x - pocket.x;
+        const dy = ball.y - pocket.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < pocket.r - ball.radius) {
+          ball.active = false; // шар "провалился"
+        }
+      }
+    }
+  }
+
+  // ------ Физика ------
+  function distance(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function resolveCollision(a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return;
+
+    const nx = dx / dist;
+    const ny = dy / dist;
+
+    const overlap = a.radius + b.radius - dist;
+    a.x -= nx * overlap * 0.5;
+    a.y -= ny * overlap * 0.5;
+    b.x += nx * overlap * 0.5;
+    b.y += ny * overlap * 0.5;
+
+    const rvx = b.vx - a.vx;
+    const rvy = b.vy - a.vy;
+    const velAlongNormal = rvx * nx + rvy * ny;
+
+    if (velAlongNormal > 0) return;
+
+    const restitution = 0.95;
+    const impulse = -(1 + restitution) * velAlongNormal;
+    const impulsePerMass = impulse / 2;
+
+    a.vx -= impulsePerMass * nx;
+    a.vy -= impulsePerMass * ny;
+    b.vx += impulsePerMass * nx;
+    b.vy += impulsePerMass * ny;
+  }
+
+  function updateBalls() {
+    for (let ball of balls) {
+      if (!ball.active) continue;
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      ball.vx *= friction;
+      ball.vy *= friction;
+
+      if (Math.abs(ball.vx) < 0.03 && Math.abs(ball.vy) < 0.03) {
+        ball.vx = 0;
+        ball.vy = 0;
+      }
+
+      // Отскок от бортов
+      if (ball.x - ball.radius < 0) {
+        ball.x = ball.radius;
+        ball.vx = -ball.vx * 0.9;
+      } else if (ball.x + ball.radius > tableWidth) {
+        ball.x = tableWidth - ball.radius;
+        ball.vx = -ball.vx * 0.9;
+      }
+
+      if (ball.y - ball.radius < 0) {
+        ball.y = ball.radius;
+        ball.vy = -ball.vy * 0.9;
+      } else if (ball.y + ball.radius > tableHeight) {
+        ball.y = tableHeight - ball.radius;
+        ball.vy = -ball.vy * 0.9;
+      }
+    }
+
+    for (let i = 0; i < balls.length; i++) {
+      for (let j = i + 1; j < balls.length; j++) {
+        if (balls[i].active && balls[j].active) {
+          if (distance(balls[i], balls[j]) < balls[i].radius + balls[j].radius) {
+            resolveCollision(balls[i], balls[j]);
+          }
+        }
+      }
+    }
+
+    checkPockets();
+  }
+
+  // ------ Рендер ------
+  function draw() {
+    ctx.clearRect(0, 0, tableWidth, tableHeight);
+
+    // Борта
+    ctx.strokeStyle = '#8b4513';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(0, 0, tableWidth, tableHeight);
+
+    // Лузы
+    ctx.fillStyle = '#000000';
+    for (let p of pockets) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Стрелка удара (если целитесь)
+    if (isAiming) {
+      const arrowX = aimStart.x + aimVector.x;
+      const arrowY = aimStart.y + aimVector.y;
+
+      // Линия
+      ctx.beginPath();
+      ctx.moveTo(aimStart.x, aimStart.y);
+      ctx.lineTo(arrowX, arrowY);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Наконечник (теперь правильно — вперёд)
+      const angle = Math.atan2(aimVector.y, aimVector.x);
+      const arrowSize = 12;
+      ctx.beginPath();
+      ctx.moveTo(arrowX, arrowY);
+      ctx.lineTo(
+        arrowX - arrowSize * Math.cos(angle - Math.PI / 6),
+        arrowY - arrowSize * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        arrowX - arrowSize * Math.cos(angle + Math.PI / 6),
+        arrowY - arrowSize * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+
+    // Шары
+    for (let ball of balls) {
+      if (!ball.active) continue;
+
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = ball.color;
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Блик
+      ctx.beginPath();
+      ctx.arc(
+        ball.x - ball.radius * 0.3,
+        ball.y - ball.radius * 0.3,
+        ball.radius * 0.4,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fill();
+    }
+  }
+
+  // ------ Игровой цикл ------
+  function gameLoop() {
+    updateBalls();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function resetGame() {
+    initBalls();
+  }
+
+  initBalls();
+  gameLoop();
+</script>
+
+</body>
+</html>
