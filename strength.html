@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="????-???? ??? ???? ????? ? ?????? � ???? ??? ? ?????? ? ?????!" />
-  <title>?????: ????</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Mini-golf game about strike force">
+  <title>Golf: Force</title>
   <style>
     :root {
       --grass-dark: #1b3a2a;
@@ -17,6 +18,7 @@
       --panel-dark: #1a2327;
       --text: #e0f7e0;
       --gold: #ffeb3b;
+      --shadow: rgba(0, 0, 0, 0.55);
     }
 
     * { box-sizing: border-box; }
@@ -24,7 +26,7 @@
     body {
       margin: 0;
       padding: 16px;
-      font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+      font-family: "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
       background: radial-gradient(ellipse at top, #2d5a3d 0%, var(--grass-dark) 60%);
       color: var(--text);
       min-height: 100vh;
@@ -44,14 +46,9 @@
       color: var(--accent);
       margin: 0 0 6px;
       font-size: clamp(1.4rem, 4vw, 2rem);
-      letter-spacing: 0.02em;
     }
 
-    .subtitle {
-      margin: 0;
-      opacity: 0.85;
-      font-size: 0.95rem;
-    }
+    .subtitle { margin: 0; opacity: 0.85; font-size: 0.95rem; }
 
     #game-wrapper {
       width: min(960px, 100%);
@@ -62,7 +59,7 @@
 
     #hud {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 8px;
     }
 
@@ -70,22 +67,23 @@
       background: rgba(0, 0, 0, 0.35);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
-      padding: 10px 14px;
+      padding: 10px 12px;
       text-align: center;
     }
 
     .hud-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       opacity: 0.7;
       margin-bottom: 4px;
     }
 
     .hud-value {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 700;
       color: var(--gold);
+      white-space: nowrap;
     }
 
     #container {
@@ -94,7 +92,7 @@
       aspect-ratio: 9 / 5;
       overflow: hidden;
       border-radius: 14px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 12px 40px var(--shadow);
       background: var(--grass-mid);
       touch-action: none;
       user-select: none;
@@ -107,18 +105,26 @@
       cursor: crosshair;
     }
 
-    #level-badge {
+    .overlay-badge {
       position: absolute;
-      top: 12px;
-      left: 12px;
       background: rgba(0, 0, 0, 0.65);
       color: var(--gold);
       padding: 6px 12px;
       border-radius: 8px;
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       z-index: 5;
       pointer-events: none;
+    }
+
+    #level-badge { top: 12px; left: 12px; }
+    #wind-badge { top: 12px; right: 12px; color: #80deea; }
+    #level-name-badge {
+      bottom: 12px;
+      left: 12px;
+      color: #fff;
+      font-weight: 600;
+      max-width: 55%;
     }
 
     #power-bar-wrap {
@@ -126,7 +132,7 @@
       bottom: 12px;
       left: 50%;
       transform: translateX(-50%);
-      width: min(280px, 70%);
+      width: min(300px, 72%);
       background: rgba(0, 0, 0, 0.55);
       border-radius: 8px;
       padding: 8px 12px;
@@ -158,7 +164,6 @@
       width: 0%;
       background: linear-gradient(90deg, #66bb6a, #ffeb3b, #ff5722);
       border-radius: 5px;
-      transition: width 0.05s linear;
     }
 
     #message {
@@ -170,14 +175,14 @@
       color: var(--accent-bright);
       padding: 18px 32px;
       border-radius: 12px;
-      font-size: clamp(1rem, 3vw, 1.4rem);
+      font-size: clamp(1rem, 3vw, 1.35rem);
       font-weight: 700;
       display: none;
       text-align: center;
       z-index: 10;
       border: 2px solid rgba(105, 240, 174, 0.4);
       max-width: 90%;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     #controls {
@@ -191,15 +196,16 @@
       background: var(--grass-mid);
       color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 10px 18px;
+      padding: 10px 16px;
       border-radius: 8px;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
     }
 
     button:hover { background: var(--grass-light); }
     button:active { transform: scale(0.97); }
+    button.active { background: #1565c0; border-color: #42a5f5; }
 
     #info {
       max-width: 960px;
@@ -213,13 +219,12 @@
     }
 
     #info h3, #info h4 { color: var(--accent-bright); margin-top: 0; }
-    #info h4 { margin-bottom: 8px; }
 
     .formula {
       background: var(--panel-dark);
       padding: 8px 12px;
       border-radius: 6px;
-      font-family: 'Consolas', 'Courier New', monospace;
+      font-family: Consolas, "Courier New", monospace;
       display: inline-block;
       margin: 6px 0;
       color: #80deea;
@@ -233,11 +238,7 @@
       font-size: 0.85rem;
     }
 
-    .legend span {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
 
     .dot {
       width: 12px;
@@ -252,202 +253,277 @@
       border-radius: 4px;
       padding: 2px 6px;
       font-size: 0.8rem;
-      font-family: inherit;
     }
+
+    #tutorial {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    #tutorial.hidden { display: none; }
+
+    #tutorial-box {
+      background: var(--panel);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      padding: 28px 32px;
+      max-width: 480px;
+      text-align: center;
+    }
+
+    #tutorial-box h2 { color: var(--gold); margin-top: 0; }
+    #tutorial-box p { text-align: left; line-height: 1.6; }
+    #tutorial-box button { margin-top: 12px; font-size: 1rem; padding: 12px 24px; }
 
     @media (max-width: 600px) {
       body { padding: 10px; }
       #info { padding: 16px; }
+      #level-name-badge { display: none; }
     }
   </style>
 </head>
 <body>
 
+<div id="tutorial">
+  <div id="tutorial-box">
+    <h2 id="tut-title"></h2>
+    <p id="tut-body"></p>
+    <button type="button" id="tut-close"></button>
+  </div>
+</div>
+
 <header>
-  <h1>? ?????: ???? ?????</h1>
-  <p class="subtitle">?????? ??? ????? � ??????? � ? ????????, ??? ???? ???????????? ? ????????</p>
+  <h1 id="page-title"></h1>
+  <p class="subtitle" id="page-subtitle"></p>
 </header>
 
 <div id="game-wrapper">
   <div id="hud">
-    <div class="hud-card">
-      <div class="hud-label">?????</div>
-      <div class="hud-value"><span id="level-num">1</span> / <span id="level-total">5</span></div>
-    </div>
-    <div class="hud-card">
-      <div class="hud-label">????</div>
-      <div class="hud-value" id="par-value">3</div>
-    </div>
-    <div class="hud-card">
-      <div class="hud-label">?????</div>
-      <div class="hud-value" id="strokes-value">0</div>
-    </div>
-    <div class="hud-card">
-      <div class="hud-label">????</div>
-      <div class="hud-value" id="score-value">0</div>
-    </div>
-    <div class="hud-card">
-      <div class="hud-label">?? ?????</div>
-      <div class="hud-value" id="distance-value">�</div>
-    </div>
-    <div class="hud-card">
-      <div class="hud-label">???? F</div>
-      <div class="hud-value" id="force-value">0</div>
-    </div>
+    <div class="hud-card"><div class="hud-label" data-i18n="hole"></div><div class="hud-value"><span id="level-num">1</span> / <span id="level-total">5</span></div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="par"></div><div class="hud-value" id="par-value">3</div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="strokes"></div><div class="hud-value" id="strokes-value">0</div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="score"></div><div class="hud-value" id="score-value">0</div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="best"></div><div class="hud-value" id="best-value">0</div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="distance"></div><div class="hud-value" id="distance-value">-</div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="force"></div><div class="hud-value" id="force-value">0</div></div>
+    <div class="hud-card"><div class="hud-label" data-i18n="speed"></div><div class="hud-value" id="speed-value">0</div></div>
   </div>
 
   <div id="container">
-    <div id="level-badge">????? <span id="level-badge-num">1</span></div>
+    <div id="level-badge" class="overlay-badge"></div>
+    <div id="wind-badge" class="overlay-badge"></div>
+    <div id="level-name-badge" class="overlay-badge"></div>
     <div id="power-bar-wrap">
       <div id="power-bar-label">
-        <span>???? ?????</span>
+        <span id="power-label-text"></span>
         <span id="power-percent">0%</span>
       </div>
       <div id="power-bar-track"><div id="power-bar-fill"></div></div>
     </div>
-    <div id="message">???????? ????! ??</div>
+    <div id="message"></div>
     <canvas id="course" width="900" height="500"></canvas>
   </div>
 
   <div id="controls">
-    <button type="button" id="btn-reset">? ???????? ?????</button>
-    <button type="button" id="btn-prev">? ?????</button>
-    <button type="button" id="btn-next">?????? ?</button>
-    <button type="button" id="btn-help">? ??? ??????</button>
+    <button type="button" id="btn-reset"></button>
+    <button type="button" id="btn-prev"></button>
+    <button type="button" id="btn-next"></button>
+    <button type="button" id="btn-help"></button>
+    <button type="button" id="btn-sound"></button>
   </div>
 </div>
 
 <div id="info">
-  <h3>??? ????? ???? ? ???????</h3>
-  <p>
-    <strong>???? ?????</strong> � ??? ??, ????????? ?????? ?? �????????� ??? ???????.
-    ? ???? ???? ???? ???????????? <strong>?????? ????????</strong>: ??? ?????? ?? ?????? ?? ????, ??? ??????? ????.
-  </p>
-  <p>
-    ???? ???????? ?????? ?? <strong>????????? ????????</strong> ????:
-    ??? ?????? ???? ? ??? ??????? ??????? ??? ? ??? ?????? ?? ??????????.
-  </p>
-
-  <h4>??????? ????:</h4>
-  <p>
-    <span class="formula">F = m � a</span> � ???? = ????? � ?????????.
-    ??? ????? ??????? ???? ?????????? ????????? � ? ?? ???????? ????????.
-  </p>
-  <p>
-    <span class="formula">v? = k � F</span> � ????????? ???????? ??????????????? ???? ?????.
-    ?????? ??????? ?????? ???? ??????????????? ??????, ? ??????? ???????? ?? ?????!
-  </p>
-
-  <h4>??????????</h4>
-  <p>
-    ????? ??? ????? ??? ???????, ?????? <em>?????</em> (?????? ??????????? ?????) ? ???????.
-    ??????? <kbd>R</kbd> � ????? ?????.
-  </p>
-
-  <div class="legend">
-    <span><i class="dot" style="background:#8d6e63"></i> ????? � ??????? ??????</span>
-    <span><i class="dot" style="background:#1565c0"></i> ???? � ????? +1 ????</span>
-    <span><i class="dot" style="background:#2e7d32"></i> ?????? � ??????</span>
-  </div>
+  <h3 id="info-title"></h3>
+  <p id="info-p1"></p>
+  <p id="info-p2"></p>
+  <h4 id="info-formulas-title"></h4>
+  <p id="info-f1"></p>
+  <p id="info-f2"></p>
+  <h4 id="info-controls-title"></h4>
+  <p id="info-controls"></p>
+  <div class="legend" id="legend"></div>
 </div>
 
 <script>
 (() => {
-  'use strict';
+  "use strict";
 
-  const canvas = document.getElementById('course');
-  const ctx = canvas.getContext('2d');
-  const messageEl = document.getElementById('message');
-  const levelNumEl = document.getElementById('level-num');
-  const levelTotalEl = document.getElementById('level-total');
-  const levelBadgeNumEl = document.getElementById('level-badge-num');
-  const parEl = document.getElementById('par-value');
-  const strokesEl = document.getElementById('strokes-value');
-  const scoreEl = document.getElementById('score-value');
-  const distanceEl = document.getElementById('distance-value');
-  const forceEl = document.getElementById('force-value');
-  const powerBarWrap = document.getElementById('power-bar-wrap');
-  const powerBarFill = document.getElementById('power-bar-fill');
-  const powerPercentEl = document.getElementById('power-percent');
+  const T = {
+    pageTitle: "\u0413\u043e\u043b\u044c\u0444: \u0421\u0418\u041b\u0410 \u0423\u0414\u0410\u0420\u0410",
+    pageSubtitle: "\u041f\u043e\u0442\u044f\u043d\u0438 \u043c\u044f\u0447 \u043d\u0430\u0437\u0430\u0434 \u2014 \u043e\u0442\u043f\u0443\u0441\u0442\u0438 \u2014 \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u0439, \u043a\u0430\u043a \u0441\u0438\u043b\u0430 \u043f\u0440\u0435\u0432\u0440\u0430\u0449\u0430\u0435\u0442\u0441\u044f \u0432 \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c",
+    hole: "\u041b\u0443\u043d\u043a\u0430",
+    par: "\u041f\u0430\u0440",
+    strokes: "\u0423\u0434\u0430\u0440\u044b",
+    score: "\u0421\u0447\u0451\u0442",
+    best: "\u0420\u0435\u043a\u043e\u0440\u0434",
+    distance: "\u0414\u043e \u043b\u0443\u043d\u043a\u0438",
+    force: "\u0421\u0438\u043b\u0430 F",
+    speed: "\u0421\u043a\u043e\u0440\u043e\u0441\u0442\u044c v",
+    powerLabel: "\u0421\u0438\u043b\u0430 \u0443\u0434\u0430\u0440\u0430",
+    btnReset: "\u21bb \u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u043b\u0443\u043d\u043a\u0443",
+    btnPrev: "\u2190 \u041d\u0430\u0437\u0430\u0434",
+    btnNext: "\u0412\u043f\u0435\u0440\u0451\u0434 \u2192",
+    btnHelp: "? \u041a\u0430\u043a \u0438\u0433\u0440\u0430\u0442\u044c",
+    btnSoundOn: "\u266a \u0417\u0432\u0443\u043a: \u0432\u043a\u043b",
+    btnSoundOff: "\u266a \u0417\u0432\u0443\u043a: \u0432\u044b\u043a\u043b",
+    levelBadge: "\u041b\u0443\u043d\u043a\u0430",
+    wind: "\u0412\u0435\u0442\u0435\u0440",
+    unitN: "\u041d",
+    unitPx: "\u043f\u043a\u0441",
+    unitMs: "\u043c/\u0441",
+    infoTitle: "\u0427\u0442\u043e \u0442\u0430\u043a\u043e\u0435 \u0421\u0418\u041b\u0410 \u0432 \u0433\u043e\u043b\u044c\u0444\u0435?",
+    infoP1: "<strong>\u0421\u0438\u043b\u0430 \u0443\u0434\u0430\u0440\u0430</strong> \u2014 \u044d\u0442\u043e \u0442\u043e, \u043d\u0430\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0438\u043b\u044c\u043d\u043e \u0442\u044b \u00ab\u0442\u043e\u043b\u043a\u0430\u0435\u0448\u044c\u00bb \u043c\u044f\u0447 \u043a\u043b\u044e\u0448\u043a\u043e\u0439. \u0412 \u044d\u0442\u043e\u0439 \u0438\u0433\u0440\u0435 \u0441\u0438\u043b\u0430 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f <strong>\u0434\u043b\u0438\u043d\u043e\u0439 \u0440\u0430\u0441\u0442\u044f\u0436\u043a\u0438</strong>.",
+    infoP2: "\u0421\u0438\u043b\u0430 \u0432\u043b\u0438\u044f\u0435\u0442 \u043d\u0430 <strong>\u043d\u0430\u0447\u0430\u043b\u044c\u043d\u0443\u044e \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c</strong> \u043c\u044f\u0447\u0430: \u0447\u0435\u043c \u0431\u043e\u043b\u044c\u0448\u0435 \u0441\u0438\u043b\u0430 \u2192 \u0442\u0435\u043c \u0431\u044b\u0441\u0442\u0440\u0435\u0435 \u043f\u043e\u043b\u0435\u0442\u0438\u0442 \u043c\u044f\u0447.",
+    infoFormulas: "\u0424\u043e\u0440\u043c\u0443\u043b\u044b \u0441\u0438\u043b\u044b:",
+    infoF1: '<span class="formula">F = m \u00b7 a</span> \u2014 \u0441\u0438\u043b\u0430 = \u043c\u0430\u0441\u0441\u0430 \u00d7 \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435.',
+    infoF2: '<span class="formula">v\u2080 = k \u00b7 F</span> \u2014 \u043d\u0430\u0447\u0430\u043b\u044c\u043d\u0430\u044f \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c \u043f\u0440\u043e\u043f\u043e\u0440\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u0430 \u0441\u0438\u043b\u0435 \u0443\u0434\u0430\u0440\u0430.',
+    infoControlsTitle: "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435",
+    infoControls: '\u0417\u0430\u0436\u043c\u0438 \u043c\u044f\u0447, \u043f\u043e\u0442\u044f\u043d\u0438 <em>\u043d\u0430\u0437\u0430\u0434</em> \u0438 \u043e\u0442\u043f\u0443\u0441\u0442\u0438. <kbd>R</kbd> \u2014 \u0441\u0431\u0440\u043e\u0441. <kbd>M</kbd> \u2014 \u0437\u0432\u0443\u043a.',
+    legendSand: "\u041f\u0435\u0441\u043e\u043a \u2014 \u0441\u0438\u043b\u044c\u043d\u043e\u0435 \u0442\u0440\u0435\u043d\u0438\u0435",
+    legendWater: "\u0412\u043e\u0434\u0430 \u2014 \u0448\u0442\u0440\u0430\u0444 +1 \u0443\u0434\u0430\u0440",
+    legendTree: "\u0414\u0435\u0440\u0435\u0432\u043e \u2014 \u043e\u0442\u0441\u043a\u043e\u043a",
+    tutTitle: "\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c!",
+    tutBody: "1. \u0417\u0430\u0436\u043c\u0438 \u0431\u0435\u043b\u044b\u0439 \u043c\u044f\u0447.\n2. \u041f\u043e\u0442\u044f\u043d\u0438 \u043c\u044b\u0448\u044c \u043d\u0430\u0437\u0430\u0434 (\u043f\u0440\u043e\u0442\u0438\u0432 \u0437\u0435\u043b\u0451\u043d\u043e\u0439 \u0441\u0442\u0440\u0435\u043b\u043a\u0438).\n3. \u041e\u0442\u043f\u0443\u0441\u0442\u0438 \u2014 \u0447\u0435\u043c \u0434\u043b\u0438\u043d\u043d\u0435\u0435 \u043d\u0430\u0442\u044f\u0436\u0435\u043d\u0438\u0435, \u0442\u0435\u043c \u0441\u0438\u043b\u044c\u043d\u0435\u0435 \u0443\u0434\u0430\u0440.\n4. \u041f\u043e\u043f\u0430\u0434\u0438 \u0432 \u0447\u0451\u0440\u043d\u0443\u044e \u043b\u0443\u043d\u043a\u0443!\n5. \u0412\u0435\u0442\u0435\u0440 \u0441\u043c\u0435\u0449\u0430\u0435\u0442 \u043c\u044f\u0447 \u0432\u043f\u043e\u043b\u0441\u0442\u044c \u0432\u043e \u0432\u0440\u0435\u043c\u044f \u043f\u043e\u043b\u0451\u0442\u0430.",
+    tutClose: "\u041f\u043e\u043d\u044f\u0442\u043d\u043e, \u0438\u0433\u0440\u0430\u0442\u044c!",
+    helpMsg: "\u0417\u0430\u0436\u043c\u0438 \u043c\u044f\u0447 \u2192 \u043f\u043e\u0442\u044f\u043d\u0438 \u043d\u0430\u0437\u0430\u0434 \u2192 \u043e\u0442\u043f\u0443\u0441\u0442\u0438!<br>\u0421\u0438\u043b\u0430 = \u0434\u043b\u0438\u043d\u0430 \u043d\u0430\u0442\u044f\u0436\u0435\u043d\u0438\u044f",
+    waterPenalty: "\u0412\u043e\u0434\u0430! +1 \u0443\u0434\u0430\u0440",
+    eagle: "\u041e\u0440\u0451\u043b!",
+    birdie: "\u041f\u0442\u0438\u0446\u0430!",
+    parResult: "\u041f\u0430\u0440!",
+    bogey: "\u0411\u043e\u0433\u0438!",
+    doubleBogey: "\u0414\u0432\u043e\u0439\u043d\u043e\u0439 \u0431\u043e\u0433\u0438\u2026",
+    strokesLabel: "\u0443\u0434\u0430\u0440(\u043e\u0432)",
+    victory: "\u041f\u043e\u0431\u0435\u0434\u0430!",
+    allComplete: "\u0412\u0441\u0435 \u043b\u0443\u043d\u043a\u0438 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u044b!",
+    newRecord: "\u041d\u043e\u0432\u044b\u0439 \u0440\u0435\u043a\u043e\u0440\u0434!",
+    lvlWarmup: "\u0420\u0430\u0437\u043c\u0438\u043d\u043a\u0430",
+    lvlSand: "\u041f\u0435\u0441\u0447\u0430\u043d\u0430\u044f \u043b\u043e\u0432\u0443\u0448\u043a\u0430",
+    lvlLake: "\u041e\u0437\u0435\u0440\u043e",
+    lvlCorridor: "\u0423\u0437\u043a\u0438\u0439 \u043a\u043e\u0440\u0438\u0434\u043e\u0440",
+    lvlFinal: "\u0424\u0438\u043d\u0430\u043b"
+  };
+
+  document.title = T.pageTitle;
+  document.getElementById("page-title").textContent = "\u26f3 " + T.pageTitle;
+  document.getElementById("page-subtitle").textContent = T.pageSubtitle;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = T[el.dataset.i18n];
+  });
+  document.getElementById("power-label-text").textContent = T.powerLabel;
+  document.getElementById("btn-reset").textContent = T.btnReset;
+  document.getElementById("btn-prev").textContent = T.btnPrev;
+  document.getElementById("btn-next").textContent = T.btnNext;
+  document.getElementById("btn-help").textContent = T.btnHelp;
+  document.getElementById("info-title").textContent = T.infoTitle;
+  document.getElementById("info-p1").innerHTML = T.infoP1;
+  document.getElementById("info-p2").innerHTML = T.infoP2;
+  document.getElementById("info-formulas-title").textContent = T.infoFormulas;
+  document.getElementById("info-f1").innerHTML = T.infoF1;
+  document.getElementById("info-f2").innerHTML = T.infoF2;
+  document.getElementById("info-controls-title").textContent = T.infoControlsTitle;
+  document.getElementById("info-controls").innerHTML = T.infoControls;
+  document.getElementById("legend").innerHTML =
+    '<span><i class="dot" style="background:#8d6e63"></i> ' + T.legendSand + '</span>' +
+    '<span><i class="dot" style="background:#1565c0"></i> ' + T.legendWater + '</span>' +
+    '<span><i class="dot" style="background:#2e7d32"></i> ' + T.legendTree + '</span>';
+  document.getElementById("tut-title").textContent = T.tutTitle;
+  document.getElementById("tut-body").innerHTML = T.tutBody.split("\n").join("<br>");
+  document.getElementById("tut-close").textContent = T.tutClose;
+
+  const canvas = document.getElementById("course");
+  const ctx = canvas.getContext("2d");
+  const messageEl = document.getElementById("message");
+  const levelNumEl = document.getElementById("level-num");
+  const levelTotalEl = document.getElementById("level-total");
+  const levelBadgeEl = document.getElementById("level-badge");
+  const levelNameBadgeEl = document.getElementById("level-name-badge");
+  const windBadgeEl = document.getElementById("wind-badge");
+  const parEl = document.getElementById("par-value");
+  const strokesEl = document.getElementById("strokes-value");
+  const scoreEl = document.getElementById("score-value");
+  const bestEl = document.getElementById("best-value");
+  const distanceEl = document.getElementById("distance-value");
+  const forceEl = document.getElementById("force-value");
+  const speedEl = document.getElementById("speed-value");
+  const powerBarWrap = document.getElementById("power-bar-wrap");
+  const powerBarFill = document.getElementById("power-bar-fill");
+  const powerPercentEl = document.getElementById("power-percent");
+  const btnSound = document.getElementById("btn-sound");
+  const tutorialEl = document.getElementById("tutorial");
 
   const W = canvas.width;
   const H = canvas.height;
-  const BALL_MASS = 0.045; // ??, ???????
+  const BALL_MASS = 0.045;
   const POWER_K = 0.11;
   const MAX_PULL = 180;
   const FRICTION_GRASS = 0.985;
   const FRICTION_SAND = 0.92;
   const MIN_SPEED = 0.03;
   const HOLE_SPEED_MAX = 2.2;
+  const STORAGE_KEY = "golf-sila-best";
+
+  let soundOn = true;
+  let audioCtx = null;
+  let bestScore = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+  bestEl.textContent = bestScore;
+
+  function getAudio() {
+    if (!soundOn) return null;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function updateSoundBtn() {
+    btnSound.textContent = soundOn ? T.btnSoundOn : T.btnSoundOff;
+    btnSound.classList.toggle("active", soundOn);
+  }
+  updateSoundBtn();
+
+  btnSound.addEventListener("click", () => {
+    soundOn = !soundOn;
+    updateSoundBtn();
+    if (soundOn && audioCtx) audioCtx.resume();
+  });
+
+  document.getElementById("tut-close").addEventListener("click", () => {
+    tutorialEl.classList.add("hidden");
+    localStorage.setItem("golf-sila-seen", "1");
+  });
+  if (localStorage.getItem("golf-sila-seen")) tutorialEl.classList.add("hidden");
 
   const levels = [
-    {
-      name: '????????',
-      par: 2,
-      ball: { x: 120, y: 400 },
-      hole: { x: 380, y: 360 },
-      obstacles: [],
-      sand: []
-    },
-    {
-      name: '???????? ???????',
-      par: 3,
-      ball: { x: 100, y: 420 },
-      hole: { x: 780, y: 120 },
+    { name: T.lvlWarmup, par: 2, wind: 0, ball: { x: 120, y: 400 }, hole: { x: 380, y: 360 }, obstacles: [], sand: [], water: [] },
+    { name: T.lvlSand, par: 3, wind: 0.04, ball: { x: 100, y: 420 }, hole: { x: 780, y: 120 },
+      obstacles: [{ type: "tree", x: 420, y: 280, r: 28 }, { type: "tree", x: 580, y: 200, r: 24 }],
+      sand: [{ x: 300, y: 350, w: 160, h: 90 }, { x: 520, y: 260, w: 120, h: 70 }], water: [] },
+    { name: T.lvlLake, par: 4, wind: -0.06, ball: { x: 80, y: 250 }, hole: { x: 820, y: 400 },
+      obstacles: [{ type: "tree", x: 200, y: 150, r: 26 }, { type: "tree", x: 700, y: 280, r: 30 }],
+      sand: [{ x: 650, y: 380, w: 100, h: 60 }], water: [{ x: 380, y: 200, w: 200, h: 120 }] },
+    { name: T.lvlCorridor, par: 3, wind: 0.08, ball: { x: 450, y: 450 }, hole: { x: 450, y: 80 },
       obstacles: [
-        { type: 'tree', x: 420, y: 280, r: 28 },
-        { type: 'tree', x: 580, y: 200, r: 24 }
-      ],
-      sand: [{ x: 300, y: 350, w: 160, h: 90 }, { x: 520, y: 260, w: 120, h: 70 }]
-    },
-    {
-      name: '?????',
-      par: 4,
-      ball: { x: 80, y: 250 },
-      hole: { x: 820, y: 400 },
+        { type: "tree", x: 280, y: 300, r: 32 }, { type: "tree", x: 620, y: 300, r: 32 },
+        { type: "tree", x: 350, y: 180, r: 22 }, { type: "tree", x: 550, y: 180, r: 22 }
+      ], sand: [], water: [] },
+    { name: T.lvlFinal, par: 5, wind: 0.05, ball: { x: 60, y: 60 }, hole: { x: 840, y: 440 },
       obstacles: [
-        { type: 'tree', x: 200, y: 150, r: 26 },
-        { type: 'tree', x: 700, y: 280, r: 30 }
+        { type: "tree", x: 300, y: 200, r: 28 }, { type: "tree", x: 500, y: 350, r: 30 },
+        { type: "tree", x: 650, y: 180, r: 26 }, { type: "tree", x: 400, y: 420, r: 24 }
       ],
-      sand: [{ x: 650, y: 380, w: 100, h: 60 }],
-      water: [{ x: 380, y: 200, w: 200, h: 120 }]
-    },
-    {
-      name: '????? ???????',
-      par: 3,
-      ball: { x: 450, y: 450 },
-      hole: { x: 450, y: 80 },
-      obstacles: [
-        { type: 'tree', x: 280, y: 300, r: 32 },
-        { type: 'tree', x: 620, y: 300, r: 32 },
-        { type: 'tree', x: 350, y: 180, r: 22 },
-        { type: 'tree', x: 550, y: 180, r: 22 }
-      ],
-      sand: [],
-      water: []
-    },
-    {
-      name: '?????',
-      par: 5,
-      ball: { x: 60, y: 60 },
-      hole: { x: 840, y: 440 },
-      obstacles: [
-        { type: 'tree', x: 300, y: 200, r: 28 },
-        { type: 'tree', x: 500, y: 350, r: 30 },
-        { type: 'tree', x: 650, y: 180, r: 26 },
-        { type: 'tree', x: 400, y: 420, r: 24 }
-      ],
-      sand: [
-        { x: 180, y: 120, w: 90, h: 70 },
-        { x: 600, y: 300, w: 110, h: 80 }
-      ],
-      water: [{ x: 420, y: 240, w: 140, h: 90 }]
-    }
+      sand: [{ x: 180, y: 120, w: 90, h: 70 }, { x: 600, y: 300, w: 110, h: 80 }],
+      water: [{ x: 420, y: 240, w: 140, h: 90 }] }
   ];
 
   let currentLevel = 0;
   let strokes = 0;
   let totalScore = 0;
+  let wind = 0;
   let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 14, active: true };
   let hole = { x: 0, y: 0, radius: 26 };
   let obstacles = [];
@@ -457,75 +533,66 @@
   let aimVector = { x: 0, y: 0 };
   let trail = [];
   let particles = [];
+  let confetti = [];
   let messageTimer = null;
   let levelCompleteLock = false;
+  let force = 0;
 
   levelTotalEl.textContent = levels.length;
 
   function scalePoint(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const sx = W / rect.width;
-    const sy = H / rect.height;
     return {
-      x: (clientX - rect.left) * sx,
-      y: (clientY - rect.top) * sy
+      x: (clientX - rect.left) * (W / rect.width),
+      y: (clientY - rect.top) * (H / rect.height)
     };
   }
 
-  function loadLevel(index, keepScore = false) {
+  function loadLevel(index, keepScore) {
     const lvl = levels[index];
-    ball.x = lvl.ball.x;
-    ball.y = lvl.ball.y;
-    ball.vx = 0;
-    ball.vy = 0;
-    ball.active = true;
-    hole.x = lvl.hole.x;
-    hole.y = lvl.hole.y;
+    ball.x = lvl.ball.x; ball.y = lvl.ball.y;
+    ball.vx = 0; ball.vy = 0; ball.active = true;
+    hole.x = lvl.hole.x; hole.y = lvl.hole.y;
+    wind = lvl.wind || 0;
     obstacles = (lvl.obstacles || []).map(o => ({ ...o }));
     sandPatches = (lvl.sand || []).map(s => ({ ...s }));
     waterPatches = (lvl.water || []).map(w => ({ ...w }));
     strokes = 0;
     if (!keepScore) totalScore = 0;
-    trail = [];
-    particles = [];
-    levelCompleteLock = false;
-    isAiming = false;
-    aimVector.x = 0;
-    aimVector.y = 0;
+    trail = []; particles = []; confetti = [];
+    levelCompleteLock = false; isAiming = false;
+    aimVector.x = 0; aimVector.y = 0; force = 0;
 
     const n = index + 1;
     levelNumEl.textContent = n;
-    levelBadgeNumEl.textContent = n;
+    levelBadgeEl.textContent = T.levelBadge + " " + n;
+    levelNameBadgeEl.textContent = lvl.name;
+    const windDir = wind > 0 ? "\u2192" : wind < 0 ? "\u2190" : "\u2014";
+    windBadgeEl.textContent = T.wind + ": " + windDir + " " + Math.abs(wind * 100).toFixed(0);
     parEl.textContent = lvl.par;
-    messageEl.style.display = 'none';
-    updateHud(0);
+    messageEl.style.display = "none";
+    updateHud();
   }
 
-  function updateHud(force) {
+  function updateHud() {
     strokesEl.textContent = strokes;
     scoreEl.textContent = totalScore;
-    const dx = ball.x - hole.x;
-    const dy = ball.y - hole.y;
-    const dist = Math.hypot(dx, dy);
-    distanceEl.textContent = Math.round(dist) + ' px';
-    forceEl.textContent = force.toFixed(1) + ' ?';
-    const pct = Math.round((force / (MAX_PULL * POWER_K)) * 100);
-    powerPercentEl.textContent = pct + '%';
-    powerBarFill.style.width = pct + '%';
-    powerBarWrap.classList.toggle('visible', isAiming);
+    const dist = Math.hypot(ball.x - hole.x, ball.y - hole.y);
+    distanceEl.textContent = Math.round(dist) + " " + T.unitPx;
+    forceEl.textContent = force.toFixed(1) + " " + T.unitN;
+    const spd = Math.hypot(ball.vx, ball.vy);
+    speedEl.textContent = (spd * 10).toFixed(1) + " " + T.unitMs;
+    const pct = Math.round((force / (MAX_PULL * POWER_K / BALL_MASS)) * 100);
+    powerPercentEl.textContent = Math.min(100, pct) + "%";
+    powerBarFill.style.width = Math.min(100, pct) + "%";
+    powerBarWrap.classList.toggle("visible", isAiming);
   }
-
-  let force = 0;
 
   function startAim(x, y) {
     if (!ball.active || levelCompleteLock) return;
-    const dx = x - ball.x;
-    const dy = y - ball.y;
-    if (Math.hypot(dx, dy) <= ball.radius + 14) {
+    if (Math.hypot(x - ball.x, y - ball.y) <= ball.radius + 14) {
       isAiming = true;
-      aimVector.x = 0;
-      aimVector.y = 0;
-      force = 0;
+      aimVector.x = 0; aimVector.y = 0; force = 0;
     }
   }
 
@@ -539,128 +606,98 @@
       aimVector.y = (aimVector.y / len) * MAX_PULL;
     }
     force = Math.hypot(aimVector.x, aimVector.y) * POWER_K / BALL_MASS;
-    updateHud(force);
+    updateHud();
   }
 
   function releaseAim() {
     if (!isAiming) return;
     const len = Math.hypot(aimVector.x, aimVector.y);
     if (len > 8) {
-      // ????? ????? � ??? ????? ?????? (?????????????? ??????? ?????????)
       ball.vx = -aimVector.x * POWER_K;
       ball.vy = -aimVector.y * POWER_K;
       strokes++;
       playHitSound(len / MAX_PULL);
     }
-    isAiming = false;
-    force = 0;
-    updateHud(0);
+    isAiming = false; force = 0;
+    updateHud();
   }
 
-  canvas.addEventListener('mousedown', e => {
-    const p = scalePoint(e.clientX, e.clientY);
-    startAim(p.x, p.y);
+  canvas.addEventListener("mousedown", e => { const p = scalePoint(e.clientX, e.clientY); startAim(p.x, p.y); });
+  canvas.addEventListener("mousemove", e => { const p = scalePoint(e.clientX, e.clientY); moveAim(p.x, p.y); });
+  canvas.addEventListener("mouseup", releaseAim);
+  canvas.addEventListener("mouseleave", releaseAim);
+  canvas.addEventListener("touchstart", e => { e.preventDefault(); const p = scalePoint(e.touches[0].clientX, e.touches[0].clientY); startAim(p.x, p.y); }, { passive: false });
+  canvas.addEventListener("touchmove", e => { e.preventDefault(); const p = scalePoint(e.touches[0].clientX, e.touches[0].clientY); moveAim(p.x, p.y); }, { passive: false });
+  canvas.addEventListener("touchend", e => { e.preventDefault(); releaseAim(); });
+
+  document.getElementById("btn-reset").addEventListener("click", () => loadLevel(currentLevel, true));
+  document.getElementById("btn-prev").addEventListener("click", () => { currentLevel = (currentLevel - 1 + levels.length) % levels.length; loadLevel(currentLevel, true); });
+  document.getElementById("btn-next").addEventListener("click", () => { currentLevel = (currentLevel + 1) % levels.length; loadLevel(currentLevel, true); });
+  document.getElementById("btn-help").addEventListener("click", () => { tutorialEl.classList.remove("hidden"); });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "r" || e.key === "R" || e.key === "\u043a" || e.key === "\u041a") loadLevel(currentLevel, true);
+    if (e.key === "m" || e.key === "M" || e.key === "\u044c" || e.key === "\u042c") { soundOn = !soundOn; updateSoundBtn(); }
   });
 
-  canvas.addEventListener('mousemove', e => {
-    const p = scalePoint(e.clientX, e.clientY);
-    moveAim(p.x, p.y);
-  });
-
-  canvas.addEventListener('mouseup', releaseAim);
-  canvas.addEventListener('mouseleave', releaseAim);
-
-  canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    const t = e.touches[0];
-    const p = scalePoint(t.clientX, t.clientY);
-    startAim(p.x, p.y);
-  }, { passive: false });
-
-  canvas.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const t = e.touches[0];
-    const p = scalePoint(t.clientX, t.clientY);
-    moveAim(p.x, p.y);
-  }, { passive: false });
-
-  canvas.addEventListener('touchend', e => {
-    e.preventDefault();
-    releaseAim();
-  });
-
-  document.getElementById('btn-reset').addEventListener('click', () => loadLevel(currentLevel, true));
-  document.getElementById('btn-prev').addEventListener('click', () => {
-    currentLevel = (currentLevel - 1 + levels.length) % levels.length;
-    loadLevel(currentLevel, true);
-  });
-  document.getElementById('btn-next').addEventListener('click', () => {
-    currentLevel = (currentLevel + 1) % levels.length;
-    loadLevel(currentLevel, true);
-  });
-  document.getElementById('btn-help').addEventListener('click', () => {
-    showMessage('????? ??? ? ?????? ????? ? ???????!<br>???? = ????? ?????????', '#80deea', false);
-  });
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'r' || e.key === 'R' || e.key === '?' || e.key === '?') {
-      loadLevel(currentLevel, true);
-    }
-  });
-
-  function showMessage(html, color = '#69f0ae', autoHide = true) {
+  function showMessage(html, color, autoHide) {
     clearTimeout(messageTimer);
     messageEl.innerHTML = html;
-    messageEl.style.color = color;
-    messageEl.style.display = 'block';
-    if (autoHide) {
-      messageTimer = setTimeout(() => { messageEl.style.display = 'none'; }, 2200);
-    }
+    messageEl.style.color = color || "#69f0ae";
+    messageEl.style.display = "block";
+    if (autoHide !== false) messageTimer = setTimeout(() => { messageEl.style.display = "none"; }, 2400);
   }
 
   function playHitSound(intensity) {
-    try {
-      const ac = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ac.createOscillator();
-      const gain = ac.createGain();
-      osc.connect(gain);
-      gain.connect(ac.destination);
-      osc.frequency.value = 180 + intensity * 320;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.12 * intensity, ac.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.12);
-      osc.start(ac.currentTime);
-      osc.stop(ac.currentTime + 0.12);
-    } catch (_) { /* ???? ???????????? */ }
+    const ac = getAudio();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.frequency.value = 180 + intensity * 320;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.12 * intensity, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.12);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 0.12);
   }
 
   function playWinSound() {
-    try {
-      const ac = new (window.AudioContext || window.webkitAudioContext)();
-      [523, 659, 784].forEach((freq, i) => {
-        const osc = ac.createOscillator();
-        const gain = ac.createGain();
-        osc.connect(gain);
-        gain.connect(ac.destination);
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.1, ac.currentTime + i * 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + i * 0.1 + 0.2);
-        osc.start(ac.currentTime + i * 0.1);
-        osc.stop(ac.currentTime + i * 0.1 + 0.2);
-      });
-    } catch (_) {}
+    const ac = getAudio();
+    if (!ac) return;
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.1, ac.currentTime + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + i * 0.1 + 0.2);
+      osc.start(ac.currentTime + i * 0.1);
+      osc.stop(ac.currentTime + i * 0.1 + 0.2);
+    });
   }
 
-  function spawnParticles(x, y, color, count = 16) {
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1 + Math.random() * 4;
-      particles.push({
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 30 + Math.random() * 20,
-        color
+  function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < (count || 16); i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 1 + Math.random() * 4;
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 30 + Math.random() * 20, color });
+    }
+  }
+
+  function spawnConfetti() {
+    const colors = ["#ffeb3b", "#69f0ae", "#42a5f5", "#f44336", "#ff9800"];
+    for (let i = 0; i < 60; i++) {
+      confetti.push({
+        x: Math.random() * W, y: -10,
+        vx: (Math.random() - 0.5) * 3,
+        vy: 2 + Math.random() * 4,
+        rot: Math.random() * 6.28,
+        vr: (Math.random() - 0.5) * 0.2,
+        color: colors[i % colors.length],
+        life: 120 + Math.random() * 60,
+        w: 6 + Math.random() * 6,
+        h: 4 + Math.random() * 4
       });
     }
   }
@@ -670,24 +707,18 @@
   }
 
   function getSurfaceFriction() {
-    for (const s of sandPatches) {
-      if (pointInRect(ball.x, ball.y, s)) return FRICTION_SAND;
-    }
+    for (const s of sandPatches) if (pointInRect(ball.x, ball.y, s)) return FRICTION_SAND;
     return FRICTION_GRASS;
   }
 
   function resolveTreeCollision(tree) {
-    const dx = ball.x - tree.x;
-    const dy = ball.y - tree.y;
+    const dx = ball.x - tree.x, dy = ball.y - tree.y;
     const dist = Math.hypot(dx, dy);
     const minDist = ball.radius + tree.r;
     if (dist >= minDist || dist === 0) return;
-
-    const nx = dx / dist;
-    const ny = dy / dist;
+    const nx = dx / dist, ny = dy / dist;
     ball.x = tree.x + nx * minDist;
     ball.y = tree.y + ny * minDist;
-
     const dot = ball.vx * nx + ball.vy * ny;
     ball.vx = (ball.vx - 2 * dot * nx) * 0.65;
     ball.vy = (ball.vy - 2 * dot * ny) * 0.65;
@@ -697,12 +728,10 @@
     for (const w of waterPatches) {
       if (pointInRect(ball.x, ball.y, w)) {
         const lvl = levels[currentLevel];
-        ball.x = lvl.ball.x;
-        ball.y = lvl.ball.y;
-        ball.vx = 0;
-        ball.vy = 0;
+        ball.x = lvl.ball.x; ball.y = lvl.ball.y;
+        ball.vx = 0; ball.vy = 0;
         strokes++;
-        showMessage('????! +1 ???? ??', '#4fc3f7', true);
+        showMessage(T.waterPenalty + " \uD83D\uDCA7", "#4fc3f7");
         return true;
       }
     }
@@ -712,11 +741,11 @@
   function evaluateScore() {
     const par = levels[currentLevel].par;
     const diff = strokes - par;
-    if (diff <= -2) return { text: '????! ??', points: 5 };
-    if (diff === -1) return { text: '?????! ??', points: 3 };
-    if (diff === 0) return { text: '???! ?', points: 2 };
-    if (diff === 1) return { text: '????! ??', points: 1 };
-    return { text: '??????? ????�', points: 0 };
+    if (diff <= -2) return { text: T.eagle + " \uD83E\uDD85", points: 5 };
+    if (diff === -1) return { text: T.birdie + " \uD83D\uDC26", points: 3 };
+    if (diff === 0) return { text: T.parResult + " \u2705", points: 2 };
+    if (diff === 1) return { text: T.bogey + " \uD83D\uDC4D", points: 1 };
+    return { text: T.doubleBogey, points: 0 };
   }
 
   function completeLevel() {
@@ -726,33 +755,47 @@
     const result = evaluateScore();
     totalScore += result.points;
     playWinSound();
-    spawnParticles(hole.x, hole.y, '#ffeb3b', 24);
-    showMessage(result.text + '<br><small>' + strokes + ' ????(??), ??? ' + levels[currentLevel].par + '</small>');
+    spawnParticles(hole.x, hole.y, "#ffeb3b", 28);
+    showMessage(result.text + "<br><small>" + strokes + " " + T.strokesLabel + ", " + T.par.toLowerCase() + " " + levels[currentLevel].par + "</small>");
 
     setTimeout(() => {
       currentLevel++;
       if (currentLevel >= levels.length) {
-        showMessage('??????! ??<br>??? ????? ????????!<br>????: ' + totalScore, '#ffeb3b', false);
-        setTimeout(() => {
-          currentLevel = 0;
-          loadLevel(0);
-        }, 3500);
+        let msg = T.victory + " \uD83C\uDFC6<br>" + T.allComplete + "<br>" + T.score + ": " + totalScore;
+        if (totalScore > bestScore) {
+          bestScore = totalScore;
+          localStorage.setItem(STORAGE_KEY, String(bestScore));
+          bestEl.textContent = bestScore;
+          msg += "<br><strong>" + T.newRecord + "</strong>";
+        }
+        spawnConfetti();
+        showMessage(msg, "#ffeb3b", false);
+        setTimeout(() => { currentLevel = 0; loadLevel(0); }, 4000);
       } else {
         loadLevel(currentLevel, true);
       }
-    }, 2200);
+    }, 2400);
+  }
+
+  function updateParticles() {
+    particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life--; return p.life > 0; });
+    confetti = confetti.filter(c => {
+      c.x += c.vx; c.y += c.vy; c.vy += 0.05; c.rot += c.vr; c.life--;
+      return c.life > 0 && c.y < H + 20;
+    });
   }
 
   function update() {
-    if (!ball.active) {
-      updateParticles();
-      return;
-    }
+    if (!ball.active) { updateParticles(); return; }
 
     const speed = Math.hypot(ball.vx, ball.vy);
     if (speed > 0.15) {
       trail.push({ x: ball.x, y: ball.y, alpha: 1 });
       if (trail.length > 40) trail.shift();
+    }
+
+    if (speed > 0.05) {
+      ball.vx += wind;
     }
 
     ball.x += ball.vx;
@@ -765,7 +808,6 @@
     if (Math.abs(ball.vx) < MIN_SPEED) ball.vx = 0;
     if (Math.abs(ball.vy) < MIN_SPEED) ball.vy = 0;
 
-    // ??????? ????
     if (ball.x < ball.radius) { ball.x = ball.radius; ball.vx *= -0.55; }
     if (ball.x > W - ball.radius) { ball.x = W - ball.radius; ball.vx *= -0.55; }
     if (ball.y < ball.radius) { ball.y = ball.radius; ball.vy *= -0.55; }
@@ -774,94 +816,62 @@
     for (const tree of obstacles) resolveTreeCollision(tree);
     checkWater();
 
-    const dx = ball.x - hole.x;
-    const dy = ball.y - hole.y;
-    const dist = Math.hypot(dx, dy);
+    const dist = Math.hypot(ball.x - hole.x, ball.y - hole.y);
     const curSpeed = Math.hypot(ball.vx, ball.vy);
-
-    if (dist < hole.radius - 4 && curSpeed < HOLE_SPEED_MAX) {
-      completeLevel();
-    }
+    if (dist < hole.radius - 4 && curSpeed < HOLE_SPEED_MAX) completeLevel();
 
     trail.forEach(t => { t.alpha *= 0.92; });
     trail = trail.filter(t => t.alpha > 0.05);
-
     updateParticles();
-    if (!isAiming) updateHud(0);
-  }
-
-  function updateParticles() {
-    particles = particles.filter(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.08;
-      p.life--;
-      return p.life > 0;
-    });
+    if (!isAiming) updateHud();
   }
 
   function drawGrass() {
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#5daf60');
-    grad.addColorStop(1, '#388e3c');
+    grad.addColorStop(0, "#5daf60");
+    grad.addColorStop(1, "#388e3c");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
     ctx.lineWidth = 1;
     for (let y = 0; y < H; y += 18) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y + 6);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y + 6); ctx.stroke();
     }
   }
 
   function drawSand() {
     for (const s of sandPatches) {
-      ctx.fillStyle = '#c2a878';
+      ctx.fillStyle = "#c2a878";
       ctx.beginPath();
-      ctx.roundRect(s.x, s.y, s.w, s.h, 8);
+      if (ctx.roundRect) ctx.roundRect(s.x, s.y, s.w, s.h, 8);
+      else ctx.rect(s.x, s.y, s.w, s.h);
       ctx.fill();
-      ctx.strokeStyle = '#8d6e63';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.strokeStyle = "#8d6e63"; ctx.lineWidth = 2; ctx.stroke();
     }
   }
 
   function drawWater() {
     for (const w of waterPatches) {
       const g = ctx.createLinearGradient(w.x, w.y, w.x, w.y + w.h);
-      g.addColorStop(0, '#42a5f5');
-      g.addColorStop(1, '#1565c0');
+      g.addColorStop(0, "#42a5f5"); g.addColorStop(1, "#1565c0");
       ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.roundRect(w.x, w.y, w.w, w.h, 10);
+      if (ctx.roundRect) ctx.roundRect(w.x, w.y, w.w, w.h, 10);
+      else ctx.rect(w.x, w.y, w.w, w.h);
       ctx.fill();
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = '#fff';
-      for (let i = 0; i < 4; i++) {
-        ctx.beginPath();
-        ctx.ellipse(w.x + 30 + i * 35, w.y + 20 + (i % 2) * 30, 18, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
     }
   }
 
   function drawTrees() {
     for (const tree of obstacles) {
-      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
       ctx.beginPath();
       ctx.ellipse(tree.x, tree.y + tree.r * 0.6, tree.r * 0.9, tree.r * 0.35, 0, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.fillStyle = '#5d4037';
+      ctx.fillStyle = "#5d4037";
       ctx.fillRect(tree.x - 6, tree.y, 12, tree.r);
-
       const g = ctx.createRadialGradient(tree.x, tree.y - tree.r * 0.3, 4, tree.x, tree.y - tree.r * 0.2, tree.r);
-      g.addColorStop(0, '#81c784');
-      g.addColorStop(1, '#2e7d32');
+      g.addColorStop(0, "#81c784"); g.addColorStop(1, "#2e7d32");
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(tree.x, tree.y - tree.r * 0.2, tree.r, 0, Math.PI * 2);
@@ -869,25 +879,37 @@
     }
   }
 
+  function drawWind() {
+    if (Math.abs(wind) < 0.01) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 1.5;
+    for (let y = 40; y < H; y += 50) {
+      for (let x = 30; x < W; x += 80) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + wind * 400, y);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   function drawHole() {
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
     ctx.beginPath();
     ctx.ellipse(hole.x + 3, hole.y + 5, hole.radius, hole.radius * 0.45, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = "#1a1a1a";
     ctx.beginPath();
     ctx.arc(hole.x, hole.y, hole.radius, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.strokeStyle = '#5d4037';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(hole.x, hole.y - hole.radius - 4);
     ctx.lineTo(hole.x, hole.y - hole.radius - 48);
     ctx.stroke();
-
-    ctx.fillStyle = '#f44336';
+    ctx.fillStyle = "#f44336";
     ctx.beginPath();
     ctx.moveTo(hole.x, hole.y - hole.radius - 48);
     ctx.lineTo(hole.x + 22, hole.y - hole.radius - 32);
@@ -898,66 +920,48 @@
 
   function drawBall() {
     if (!ball.active) return;
-
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = "#fff";
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#bdbdbd';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.strokeStyle = "#bdbdbd"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
     ctx.beginPath();
     ctx.arc(ball.x - 5, ball.y - 5, 4, 0, Math.PI * 2);
     ctx.fill();
 
     const d = Math.hypot(ball.x - hole.x, ball.y - hole.y);
-    if (d < 200 && Math.hypot(ball.vx, ball.vy) < 0.5) {
-      ctx.strokeStyle = 'rgba(255,235,59,0.5)';
-      ctx.setLineDash([4, 6]);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(ball.x, ball.y);
-      ctx.lineTo(hole.x, hole.y);
-      ctx.stroke();
+    if (d < 220 && Math.hypot(ball.vx, ball.vy) < 0.5) {
+      ctx.strokeStyle = "rgba(255,235,59,0.45)";
+      ctx.setLineDash([4, 6]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(hole.x, hole.y); ctx.stroke();
       ctx.setLineDash([]);
     }
   }
 
   function drawTrail() {
     for (const t of trail) {
-      ctx.fillStyle = `rgba(255,255,255,${t.alpha * 0.35})`;
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, 3, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255," + (t.alpha * 0.35) + ")";
+      ctx.beginPath(); ctx.arc(t.x, t.y, 3, 0, Math.PI * 2); ctx.fill();
     }
   }
 
   function drawAim() {
     if (!isAiming) return;
-
     const pullLen = Math.hypot(aimVector.x, aimVector.y);
     const shotX = ball.x - aimVector.x;
     const shotY = ball.y - aimVector.y;
 
-    // ????? ????????? (?????)
     ctx.beginPath();
     ctx.moveTo(ball.x, ball.y);
     ctx.lineTo(ball.x + aimVector.x, ball.y + aimVector.y);
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
 
-    // ??????????? ????? (??????? ???????)
     ctx.beginPath();
     ctx.moveTo(ball.x, ball.y);
     ctx.lineTo(shotX, shotY);
-    ctx.strokeStyle = 'rgba(105,240,174,0.95)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    ctx.strokeStyle = "rgba(105,240,174,0.95)"; ctx.lineWidth = 3; ctx.stroke();
 
     const angle = Math.atan2(-aimVector.y, -aimVector.x);
     const as = 14;
@@ -966,30 +970,52 @@
     ctx.lineTo(shotX - as * Math.cos(angle - Math.PI / 6), shotY - as * Math.sin(angle - Math.PI / 6));
     ctx.lineTo(shotX - as * Math.cos(angle + Math.PI / 6), shotY - as * Math.sin(angle + Math.PI / 6));
     ctx.closePath();
-    ctx.fillStyle = '#69f0ae';
-    ctx.fill();
+    ctx.fillStyle = "#69f0ae"; ctx.fill();
 
-    // ?????? ????
-    ctx.strokeStyle = `hsl(${120 - pullLen / MAX_PULL * 90}, 90%, 55%)`;
+    ctx.strokeStyle = "hsl(" + (120 - pullLen / MAX_PULL * 90) + ", 90%, 55%)";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius + 6 + pullLen * 0.15, 0, Math.PI * 2);
     ctx.stroke();
+
+    // Trajectory preview dots
+    let px = ball.x, py = ball.y;
+    let pvx = -aimVector.x * POWER_K;
+    let pvy = -aimVector.y * POWER_K;
+    ctx.fillStyle = "rgba(105,240,174,0.35)";
+    for (let i = 0; i < 12; i++) {
+      px += pvx; py += pvy;
+      pvx = (pvx + wind) * FRICTION_GRASS;
+      pvy *= FRICTION_GRASS;
+      ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
   function drawParticles() {
     for (const p of particles) {
       ctx.globalAlpha = p.life / 50;
       ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawConfetti() {
+    for (const c of confetti) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      ctx.globalAlpha = Math.min(1, c.life / 60);
+      ctx.fillStyle = c.color;
+      ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
 
   function draw() {
     drawGrass();
+    drawWind();
     drawSand();
     drawWater();
     drawTrees();
@@ -998,6 +1024,7 @@
     drawBall();
     drawAim();
     drawParticles();
+    drawConfetti();
   }
 
   function gameLoop() {
@@ -1010,6 +1037,5 @@
   gameLoop();
 })();
 </script>
-
 </body>
 </html>
