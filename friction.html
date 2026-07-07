@@ -14,7 +14,7 @@
     
     body {
       margin: 0;
-      padding: 15px;
+      padding: 10px;
       background: #0d1b2a;
       font-family: Arial, sans-serif;
       display: flex;
@@ -22,13 +22,14 @@
       align-items: center;
       color: #e0e1dd;
       overflow-x: hidden;
+      min-height: 100vh;
     }
 
     #gameContainer {
       position: relative;
       width: 100%;
       max-width: 400px;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
     #gameCanvas {
@@ -50,6 +51,57 @@
       color: white;
       text-shadow: 1px 1px 2px black;
       z-index: 10;
+    }
+
+    #gameOver {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      z-index: 20;
+    }
+
+    #gameOver.active {
+      display: flex;
+    }
+
+    #gameOver h2 {
+      color: #ff5252;
+      font-size: 32px;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px black;
+    }
+
+    #gameOver p {
+      color: white;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    #restartBtn {
+      margin-top: 20px;
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      background: #4cc9f0;
+      color: #1b263b;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.2s;
+    }
+
+    #restartBtn:active {
+      transform: scale(0.95);
+      background: #3aa8d8;
     }
 
     #controls {
@@ -106,7 +158,7 @@
 
     @media (max-width: 480px) {
       body {
-        padding: 10px;
+        padding: 5px;
       }
       
       #ui {
@@ -115,12 +167,36 @@
       
       .control-btn {
         padding: 15px;
-        font-size: 20px;
+        font-size: 18px;
       }
       
       #info {
         font-size: 12px;
         padding: 12px;
+      }
+
+      #gameOver h2 {
+        font-size: 28px;
+      }
+
+      #gameOver p {
+        font-size: 16px;
+      }
+
+      #restartBtn {
+        font-size: 18px;
+        padding: 12px 30px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .control-btn {
+        padding: 12px;
+        font-size: 16px;
+      }
+
+      #controls {
+        gap: 5px;
       }
     }
   </style>
@@ -130,6 +206,12 @@
 <div id="gameContainer">
   <canvas id="gameCanvas" width="400" height="600"></canvas>
   <div id="ui">Монет: <span id="coins">0</span> | Дистанция: <span id="distance">0</span> м</div>
+  <div id="gameOver">
+    <h2>💥 СТОЛКНОВЕНИЕ!</h2>
+    <p>Монет собрано: <span id="finalCoins">0</span></p>
+    <p>Дистанция: <span id="finalDistance">0</span> м</p>
+    <button id="restartBtn">🔄 ЗАНОВО</button>
+  </div>
 </div>
 
 <div id="controls">
@@ -164,6 +246,10 @@
   const distanceEl = document.getElementById('distance');
   const leftBtn = document.getElementById('leftBtn');
   const rightBtn = document.getElementById('rightBtn');
+  const gameOverEl = document.getElementById('gameOver');
+  const finalCoinsEl = document.getElementById('finalCoins');
+  const finalDistanceEl = document.getElementById('finalDistance');
+  const restartBtn = document.getElementById('restartBtn');
 
   // Игрок
   const player = {
@@ -179,6 +265,7 @@
   let coins = 0;
   let obstacles = [];
   let coinsList = [];
+  let gameRunning = true;
 
   // Интервалы спавна
   let nextObstacleAt = 0;
@@ -199,18 +286,18 @@
   });
 
   // Кнопки управления (мышь)
-  leftBtn.addEventListener('mousedown', () => keys.left = true);
+  leftBtn.addEventListener('mousedown', () => { if (gameRunning) keys.left = true; });
   leftBtn.addEventListener('mouseup', () => keys.left = false);
   leftBtn.addEventListener('mouseleave', () => keys.left = false);
   
-  rightBtn.addEventListener('mousedown', () => keys.right = true);
+  rightBtn.addEventListener('mousedown', () => { if (gameRunning) keys.right = true; });
   rightBtn.addEventListener('mouseup', () => keys.right = false);
   rightBtn.addEventListener('mouseleave', () => keys.right = false);
 
   // Тач-события для кнопок
   leftBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    keys.left = true;
+    if (gameRunning) keys.left = true;
   });
   leftBtn.addEventListener('touchend', (e) => {
     e.preventDefault();
@@ -219,16 +306,17 @@
   
   rightBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    keys.right = true;
+    if (gameRunning) keys.right = true;
   });
   rightBtn.addEventListener('touchend', (e) => {
     e.preventDefault();
     keys.right = false;
   });
 
-  // Тач-события для canvas (касание левой/правой части)
+  // Тач-события для canvas
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    if (!gameRunning) return;
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
     const x = touch.clientX - rect.left;
@@ -246,6 +334,29 @@
     keys.left = false;
     keys.right = false;
   });
+
+  // Рестарт игры
+  restartBtn.addEventListener('click', restartGame);
+  restartBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    restartGame();
+  });
+
+  function restartGame() {
+    player.x = canvas.width / 2;
+    player.speedX = 0;
+    player.currentFriction = player.baseFriction;
+    distance = 0;
+    coins = 0;
+    obstacles = [];
+    coinsList = [];
+    nextObstacleAt = 0;
+    nextCoinAt = 0;
+    gameRunning = true;
+    gameOverEl.classList.remove('active');
+    coinsEl.textContent = '0';
+    distanceEl.textContent = '0';
+  }
 
   // Спавн препятствий
   function spawnObstacle() {
@@ -275,6 +386,8 @@
 
   // Обновление
   function update() {
+    if (!gameRunning) return;
+
     distance += 1.2;
     distanceEl.textContent = Math.floor(distance);
 
@@ -310,10 +423,14 @@
       const dx = player.x - (o.x + o.width / 2);
       const dy = player.y - (o.y + o.height / 2);
       if (Math.abs(dx) < player.radius + o.width / 2 && Math.abs(dy) < player.radius + o.height / 2) {
-        if (o.type === 'snow') player.currentFriction = 0.80;
-        else if (o.type === 'tree' || o.type === 'bush') player.currentFriction = 0.88;
-        else if (o.type === 'trash') player.currentFriction = 0.91;
-        else if (o.type === 'ice') player.currentFriction = 0.99;
+        // Лёд не убивает, только меняет трение
+        if (o.type === 'ice') {
+          player.currentFriction = 0.99;
+        } else {
+          // Все остальные препятствия убивают
+          gameOver();
+          return;
+        }
       }
     }
 
@@ -326,6 +443,14 @@
 
     player.x += player.speedX;
     player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+  }
+
+  // Game Over
+  function gameOver() {
+    gameRunning = false;
+    finalCoinsEl.textContent = coins;
+    finalDistanceEl.textContent = Math.floor(distance);
+    gameOverEl.classList.add('active');
   }
 
   // Рендер
