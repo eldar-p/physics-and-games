@@ -2,42 +2,77 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Бильярд и инерция</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
       margin: 0;
-      padding: 20px;
+      padding: 15px;
       font-family: Arial, sans-serif;
       background: #1a1a2e;
       color: #f1f1f1;
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow-x: hidden;
     }
 
     h1 {
       margin-bottom: 10px;
       color: #16c79a;
+      text-align: center;
+      font-size: 28px;
     }
 
     #controls {
       margin: 10px 0;
       text-align: center;
+      width: 100%;
+      max-width: 600px;
     }
 
     button {
-      padding: 8px 16px;
+      padding: 12px 24px;
       background: #3a86ff;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
-      margin: 0 5px;
+      margin: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      touch-action: manipulation;
+      user-select: none;
+      transition: all 0.2s;
+    }
+
+    button:active {
+      transform: scale(0.95);
+      background: #2a6bd9;
     }
 
     button:hover {
       background: #2a6bd9;
+    }
+
+    #controls p {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    #canvasContainer {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 20px;
     }
 
     canvas {
@@ -45,11 +80,15 @@
       border: 6px solid #5d4037;
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.7);
-      margin-bottom: 20px;
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: none;
     }
 
     #info {
-      max-width: 620px;
+      max-width: 600px;
+      width: 100%;
       background: #16213e;
       padding: 16px;
       border-radius: 10px;
@@ -65,6 +104,101 @@
       font-family: monospace;
       margin: 8px 0;
       display: inline-block;
+      font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      #controls p {
+        font-size: 13px;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 15px;
+      }
+
+      #info {
+        padding: 14px;
+        font-size: 13px;
+      }
+
+      .formula {
+        font-size: 12px;
+        padding: 6px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 8px;
+      }
+
+      h1 {
+        font-size: 20px;
+        margin-bottom: 8px;
+      }
+
+      #controls {
+        margin: 8px 0;
+      }
+
+      button {
+        padding: 10px 18px;
+        font-size: 14px;
+        margin: 3px;
+      }
+
+      #controls p {
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      #info {
+        padding: 12px;
+        font-size: 12px;
+      }
+
+      .formula {
+        font-size: 11px;
+        padding: 5px;
+        margin: 6px 0;
+      }
+    }
+
+    @media (max-width: 360px) {
+      body {
+        padding: 5px;
+      }
+
+      h1 {
+        font-size: 18px;
+      }
+
+      button {
+        padding: 8px 15px;
+        font-size: 13px;
+      }
+
+      #controls p {
+        font-size: 11px;
+      }
+
+      #info {
+        padding: 10px;
+        font-size: 11px;
+      }
+
+      .formula {
+        font-size: 10px;
+      }
     }
   </style>
 </head>
@@ -73,10 +207,12 @@
 <h1>🎱 Бильярд: инерция в действии</h1>
 <div id="controls">
   <button onclick="resetGame()">Сбросить</button>
-  <p>Кликните на белый шар → потяните → отпустите, чтобы ударить!</p>
+  <p>Коснитесь белого шара → потяните → отпустите, чтобы ударить!</p>
 </div>
 
-<canvas id="table"></canvas>
+<div id="canvasContainer">
+  <canvas id="table"></canvas>
+</div>
 
 <div id="info">
   <h3>Что такое инерция?</h3>
@@ -165,19 +301,28 @@
 
   // ------ Управление ударом ------
   let isAiming = false;
-  let aimStart = { x: 0, y: 0 }; // центр битка
-  let aimVector = { x: 0, y: 0 }; // направление удара
+  let aimStart = { x: 0, y: 0 };
+  let aimVector = { x: 0, y: 0 };
 
-  canvas.addEventListener('mousedown', (e) => {
+  // Получение координат с учётом масштаба canvas
+  function getCanvasCoords(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
 
+  // Мышь
+  canvas.addEventListener('mousedown', (e) => {
+    const coords = getCanvasCoords(e.clientX, e.clientY);
     const cueBall = balls.find(b => b.isCue && b.active);
     if (!cueBall) return;
 
-    const dx = mx - cueBall.x;
-    const dy = my - cueBall.y;
+    const dx = coords.x - cueBall.x;
+    const dy = coords.y - cueBall.y;
     if (Math.sqrt(dx * dx + dy * dy) <= cueBall.radius) {
       isAiming = true;
       aimStart.x = cueBall.x;
@@ -189,15 +334,11 @@
 
   canvas.addEventListener('mousemove', (e) => {
     if (!isAiming) return;
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const coords = getCanvasCoords(e.clientX, e.clientY);
 
-    // Вектор от битка к мыши — это направление удара
-    aimVector.x = mx - aimStart.x;
-    aimVector.y = my - aimStart.y;
+    aimVector.x = coords.x - aimStart.x;
+    aimVector.y = coords.y - aimStart.y;
 
-    // Ограничиваем длину (макс. сила)
     const maxLen = 100;
     const len = Math.sqrt(aimVector.x ** 2 + aimVector.y ** 2);
     if (len > maxLen) {
@@ -218,6 +359,55 @@
     }
   });
 
+  // Тач-события
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const coords = getCanvasCoords(touch.clientX, touch.clientY);
+    const cueBall = balls.find(b => b.isCue && b.active);
+    if (!cueBall) return;
+
+    const dx = coords.x - cueBall.x;
+    const dy = coords.y - cueBall.y;
+    if (Math.sqrt(dx * dx + dy * dy) <= cueBall.radius * 1.5) { // Увеличенная зона для тач
+      isAiming = true;
+      aimStart.x = cueBall.x;
+      aimStart.y = cueBall.y;
+      aimVector.x = 0;
+      aimVector.y = 0;
+    }
+  });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!isAiming) return;
+    const touch = e.touches[0];
+    const coords = getCanvasCoords(touch.clientX, touch.clientY);
+
+    aimVector.x = coords.x - aimStart.x;
+    aimVector.y = coords.y - aimStart.y;
+
+    const maxLen = 100;
+    const len = Math.sqrt(aimVector.x ** 2 + aimVector.y ** 2);
+    if (len > maxLen) {
+      aimVector.x = (aimVector.x / len) * maxLen;
+      aimVector.y = (aimVector.y / len) * maxLen;
+    }
+  });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (isAiming) {
+      const cueBall = balls.find(b => b.isCue);
+      if (cueBall) {
+        const power = 0.12;
+        cueBall.vx = aimVector.x * power;
+        cueBall.vy = aimVector.y * power;
+      }
+      isAiming = false;
+    }
+  });
+
   // ------ Логика луз ------
   function checkPockets() {
     for (let ball of balls) {
@@ -227,7 +417,7 @@
         const dy = ball.y - pocket.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < pocket.r - ball.radius) {
-          ball.active = false; // шар "провалился"
+          ball.active = false;
         }
       }
     }
@@ -334,12 +524,11 @@
       ctx.fill();
     }
 
-    // Стрелка удара (если целитесь)
+    // Стрелка удара
     if (isAiming) {
       const arrowX = aimStart.x + aimVector.x;
       const arrowY = aimStart.y + aimVector.y;
 
-      // Линия
       ctx.beginPath();
       ctx.moveTo(aimStart.x, aimStart.y);
       ctx.lineTo(arrowX, arrowY);
@@ -347,7 +536,6 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Наконечник (теперь правильно — вперёд)
       const angle = Math.atan2(aimVector.y, aimVector.x);
       const arrowSize = 12;
       ctx.beginPath();
