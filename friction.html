@@ -1,22 +1,18 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Спуск на лыжах: ТРЕНИЕ</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ski: Friction</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-    
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
     body {
       margin: 0;
       padding: 10px;
-      background: #0d1b2a;
-      font-family: Arial, sans-serif;
+      background: radial-gradient(ellipse at top, #1b3a5c, #0d1b2a 70%);
+      font-family: "Segoe UI", Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -25,84 +21,119 @@
       min-height: 100vh;
     }
 
+    h1 {
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      color: #4cc9f0;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    #hud {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 8px;
+    }
+
+    .hud-item {
+      background: rgba(27, 38, 59, 0.9);
+      border: 1px solid rgba(76, 201, 240, 0.25);
+      border-radius: 8px;
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 0.72rem;
+    }
+
+    .hud-item span {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffd166;
+      margin-top: 2px;
+    }
+
     #gameContainer {
       position: relative;
       width: 100%;
       max-width: 400px;
-      margin-bottom: 10px;
     }
 
     #gameCanvas {
       background: linear-gradient(to bottom, #64b5f6, #bbdefb);
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
       display: block;
       width: 100%;
       height: auto;
       touch-action: none;
     }
 
-    #ui {
+    #frictionBar {
       position: absolute;
-      top: 10px;
+      bottom: 10px;
       left: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      color: white;
-      text-shadow: 1px 1px 2px black;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      color: #fff;
+      pointer-events: none;
       z-index: 10;
     }
 
-    #gameOver {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
+    #frictionBarTrack {
+      height: 6px;
+      background: #1b263b;
+      border-radius: 3px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+
+    #frictionBarFill {
       height: 100%;
-      background: rgba(0, 0, 0, 0.85);
+      width: 50%;
+      background: linear-gradient(90deg, #81d4fa, #4cc9f0, #ff6b6b);
+      border-radius: 3px;
+      transition: width 0.15s;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
       display: none;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      border-radius: 8px;
+      border-radius: 10px;
       z-index: 20;
+      padding: 20px;
+      text-align: center;
     }
 
-    #gameOver.active {
-      display: flex;
-    }
+    #overlay.active { display: flex; }
 
-    #gameOver h2 {
-      color: #ff5252;
-      font-size: 32px;
-      margin-bottom: 20px;
-      text-shadow: 2px 2px 4px black;
-    }
+    #overlay h2 { color: #ff5252; font-size: 1.6rem; margin-bottom: 12px; }
+    #overlay p { color: #fff; font-size: 0.95rem; margin-bottom: 6px; }
+    #overlay .record { color: #ffd166; font-weight: 700; }
 
-    #gameOver p {
-      color: white;
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    #restartBtn {
-      margin-top: 20px;
-      padding: 15px 40px;
-      font-size: 20px;
-      font-weight: bold;
+    #actionBtn {
+      margin-top: 16px;
+      padding: 14px 36px;
+      font-size: 1.1rem;
+      font-weight: 700;
       background: #4cc9f0;
       color: #1b263b;
       border: none;
       border-radius: 10px;
       cursor: pointer;
       touch-action: manipulation;
-      transition: all 0.2s;
     }
 
-    #restartBtn:active {
-      transform: scale(0.95);
-      background: #3aa8d8;
-    }
+    #actionBtn:active { transform: scale(0.96); background: #3aa8d8; }
 
     #controls {
       display: flex;
@@ -115,9 +146,9 @@
 
     .control-btn {
       flex: 1;
-      padding: 20px;
-      font-size: 24px;
-      font-weight: bold;
+      padding: 18px;
+      font-size: 1.2rem;
+      font-weight: 700;
       background: #1b263b;
       color: #4cc9f0;
       border: 2px solid #4cc9f0;
@@ -125,418 +156,823 @@
       cursor: pointer;
       user-select: none;
       touch-action: manipulation;
-      transition: all 0.1s;
     }
 
-    .control-btn:active {
+    .control-btn:active, .control-btn.pressed {
       background: #4cc9f0;
       color: #1b263b;
-      transform: scale(0.95);
+      transform: scale(0.96);
     }
 
+    #extraControls {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 8px;
+    }
+
+    #extraControls button {
+      flex: 1;
+      padding: 10px;
+      font-size: 0.85rem;
+      background: #1b263b;
+      color: #aaa;
+      border: 1px solid #333;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #extraControls button.active { color: #4cc9f0; border-color: #4cc9f0; }
+
     #info {
-      margin-top: 15px;
+      margin-top: 12px;
       background: #1b263b;
       padding: 14px;
       border-radius: 10px;
       max-width: 400px;
       width: 100%;
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 0.82rem;
+      line-height: 1.55;
       border-left: 4px solid #4cc9f0;
     }
+
+    #info h3 { color: #4cc9f0; margin-bottom: 8px; font-size: 0.95rem; }
 
     .formula {
       background: #0d1b2a;
       padding: 5px 10px;
       border-radius: 5px;
       display: inline-block;
-      font-family: monospace;
-      margin: 5px 0;
+      font-family: Consolas, monospace;
+      margin: 4px 0;
       color: #f1faee;
     }
 
-    @media (max-width: 480px) {
-      body {
-        padding: 5px;
-      }
-      
-      #ui {
-        font-size: 14px;
-      }
-      
-      .control-btn {
-        padding: 15px;
-        font-size: 18px;
-      }
-      
-      #info {
-        font-size: 12px;
-        padding: 12px;
-      }
-
-      #gameOver h2 {
-        font-size: 28px;
-      }
-
-      #gameOver p {
-        font-size: 16px;
-      }
-
-      #restartBtn {
-        font-size: 18px;
-        padding: 12px 30px;
-      }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 0.78rem;
     }
 
-    @media (max-width: 360px) {
-      .control-btn {
-        padding: 12px;
-        font-size: 16px;
-      }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-      #controls {
-        gap: 5px;
-      }
+    #tutorial {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    #tutorial.hidden { display: none; }
+
+    #tutorialBox {
+      background: #1b263b;
+      border: 2px solid #4cc9f0;
+      border-radius: 14px;
+      padding: 24px;
+      max-width: 360px;
+    }
+
+    #tutorialBox h2 { color: #ffd166; margin-bottom: 10px; font-size: 1.2rem; }
+    #tutorialBox p { line-height: 1.6; font-size: 0.9rem; margin-bottom: 8px; }
+    #tutorialBox button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 12px;
+      background: #4cc9f0;
+      color: #1b263b;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 5px; }
+      .control-btn { padding: 14px; font-size: 1rem; }
     }
   </style>
 </head>
 <body>
 
+<div id="tutorial">
+  <div id="tutorialBox">
+    <h2 id="tut-title"></h2>
+    <p id="tut-body"></p>
+    <button type="button" id="tut-close"></button>
+  </div>
+</div>
+
+<h1 id="page-title"></h1>
+
+<div id="hud">
+  <div class="hud-item" id="hud-coins-label"><span id="coins">0</span></div>
+  <div class="hud-item" id="hud-dist-label"><span id="distance">0</span></div>
+  <div class="hud-item" id="hud-speed-label"><span id="speed">0</span></div>
+  <div class="hud-item" id="hud-mu-label"><span id="muVal">0.06</span></div>
+  <div class="hud-item" id="hud-record-label"><span id="record">0</span></div>
+  <div class="hud-item" id="hud-shield-label"><span id="shield">0</span></div>
+</div>
+
 <div id="gameContainer">
   <canvas id="gameCanvas" width="400" height="600"></canvas>
-  <div id="ui">Монет: <span id="coins">0</span> | Дистанция: <span id="distance">0</span> м</div>
-  <div id="gameOver">
-    <h2>💥 СТОЛКНОВЕНИЕ!</h2>
-    <p>Монет собрано: <span id="finalCoins">0</span></p>
-    <p>Дистанция: <span id="finalDistance">0</span> м</p>
-    <button id="restartBtn">🔄 ЗАНОВО</button>
+  <div id="frictionBar">
+    <span id="friction-label"></span>
+    <div id="frictionBarTrack"><div id="frictionBarFill"></div></div>
+  </div>
+  <div id="overlay">
+    <h2 id="overlay-title"></h2>
+    <p id="overlay-coins"></p>
+    <p id="overlay-dist"></p>
+    <p class="record" id="overlay-record"></p>
+    <button type="button" id="actionBtn"></button>
   </div>
 </div>
 
 <div id="controls">
-  <button class="control-btn" id="leftBtn">← ВЛЕВО</button>
-  <button class="control-btn" id="rightBtn">ВПРАВО →</button>
+  <button class="control-btn" id="leftBtn"></button>
+  <button class="control-btn" id="rightBtn"></button>
+</div>
+
+<div id="extraControls">
+  <button type="button" id="btnPause"></button>
+  <button type="button" id="btnSound"></button>
+  <button type="button" id="btnHelp"></button>
 </div>
 
 <div id="info">
-  <h3>Что такое ТРЕНИЕ?</h3>
-  <p>
-    <strong>Трение</strong> — это сила, которая <strong>замедляет движение</strong> при контакте поверхностей.
-    Чем «шершавее» поверхность — тем больше трение.
-  </p>
-  <p>
-    Трение — это физическое явление сопротивления движению одного тела по поверхности другого (или внутри среды), возникающее из-за шероховатости поверхностей и межмолекулярного взаимодействия.
-  </p>
-  <p>
-    Оно бывает разных видов: трение покоя (удерживает тела), трение скольжения (при скольжении) и трение качения (при катании).
-  </p>
-  <p>
-    <span class="formula">F<sub>тр</sub> = μ · N</span> — сила трения = коэффициент трения × сила нормальной реакции  
-  </p>
-  <p>
-    <span class="formula">a = –μ · g</span> — ускорение торможения (отрицательное!)
-  </p>
+  <h3 id="info-title"></h3>
+  <p id="info-p1"></p>
+  <p id="info-p2"></p>
+  <p id="info-f1"></p>
+  <p id="info-f2"></p>
+  <div class="legend" id="legend"></div>
 </div>
 
 <script>
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const coinsEl = document.getElementById('coins');
-  const distanceEl = document.getElementById('distance');
-  const leftBtn = document.getElementById('leftBtn');
-  const rightBtn = document.getElementById('rightBtn');
-  const gameOverEl = document.getElementById('gameOver');
-  const finalCoinsEl = document.getElementById('finalCoins');
-  const finalDistanceEl = document.getElementById('finalDistance');
-  const restartBtn = document.getElementById('restartBtn');
+(() => {
+  "use strict";
 
-  // Игрок
+  const T = {
+    pageTitle: "\u0421\u043f\u0443\u0441\u043a \u043d\u0430 \u043b\u044b\u0436\u0430\u0445: \u0422\u0420\u0415\u041d\u0418\u0415",
+    hudCoins: "\u041c\u043e\u043d\u0435\u0442\u044b",
+    hudDist: "\u0414\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u044f (\u043c)",
+    hudSpeed: "\u0421\u043a\u043e\u0440\u043e\u0441\u0442\u044c",
+    hudMu: "\u041a\u043e\u044d\u0444. \u0442\u0440\u0435\u043d\u0438\u044f \u03bc",
+    hudRecord: "\u0420\u0435\u043a\u043e\u0440\u0434",
+    hudShield: "\u0429\u0438\u0442",
+    frictionLabel: "\u0421\u0438\u043b\u0430 \u0442\u0440\u0435\u043d\u0438\u044f (\u0447\u0435\u043c \u0431\u043e\u043b\u044c\u0448\u0435 \u2014 \u0442\u0435\u043c \u0441\u0438\u043b\u044c\u043d\u0435\u0435 \u0442\u043e\u0440\u043c\u043e\u0436\u0435\u043d\u0438\u0435)",
+    leftBtn: "\u2190 \u0412\u041b\u0415\u0412\u041e",
+    rightBtn: "\u0412\u041f\u0420\u0410\u0412\u041e \u2192",
+    btnPause: "\u23f8 \u041f\u0430\u0443\u0437\u0430",
+    btnResume: "\u25b6 \u0414\u0430\u043b\u0435\u0435",
+    btnSoundOn: "\u266a \u0417\u0432\u0443\u043a",
+    btnSoundOff: "\u266a \u0412\u044b\u043a\u043b",
+    btnHelp: "? \u041f\u043e\u043c\u043e\u0449\u044c",
+    gameOverTitle: "\u0421\u0422\u041e\u041b\u041a\u041d\u041e\u0412\u0415\u041d\u0418\u0415!",
+    pauseTitle: "\u041f\u0410\u0423\u0417\u0410",
+    restartBtn: "\u0417\u0410\u041d\u041e\u0412\u041e",
+    resumeBtn: "\u041f\u0420\u041e\u0414\u041e\u041b\u0416\u0418\u0422\u042c",
+    overlayCoins: "\u041c\u043e\u043d\u0435\u0442 \u0441\u043e\u0431\u0440\u0430\u043d\u043e:",
+    overlayDist: "\u0414\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u044f:",
+    newRecord: "\u041d\u043e\u0432\u044b\u0439 \u0440\u0435\u043a\u043e\u0440\u0434!",
+    bestRecord: "\u041b\u0443\u0447\u0448\u0438\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442:",
+    unitM: "\u043c",
+    unitMs: "\u043c/\u0441",
+    infoTitle: "\u0427\u0442\u043e \u0442\u0430\u043a\u043e\u0435 \u0422\u0420\u0415\u041d\u0418\u0415?",
+    infoP1: "<strong>\u0422\u0440\u0435\u043d\u0438\u0435</strong> \u2014 \u0441\u0438\u043b\u0430, \u043a\u043e\u0442\u043e\u0440\u0430\u044f <strong>\u0437\u0430\u043c\u0435\u0434\u043b\u044f\u0435\u0442 \u0434\u0432\u0438\u0436\u0435\u043d\u0438\u0435</strong>. \u0427\u0435\u043c \u0431\u043e\u043b\u044c\u0448\u0435 \u0448\u0435\u0440\u043e\u0445\u043e\u0432\u0430\u0442\u043e\u0441\u0442\u044c \u2014 \u0442\u0435\u043c \u0431\u043e\u043b\u044c\u0448\u0435 \u0442\u0440\u0435\u043d\u0438\u0435.",
+    infoP2: "\u041d\u0430 \u043b\u044c\u0434\u0443 \u2014 \u043c\u0430\u043b\u043e \u0442\u0440\u0435\u043d\u0438\u044f (\u0441\u043a\u043e\u043b\u044c\u0436\u0435\u043d\u0438\u0435), \u0432 \u043f\u0443\u0448\u043d\u043e\u043c \u0441\u043d\u0435\u0433\u0443 \u2014 \u043c\u043d\u043e\u0433\u043e (\u0431\u044b\u0441\u0442\u0440\u043e \u0442\u043e\u0440\u043c\u043e\u0436\u0435\u043d\u0438\u0435). \u0421\u043e\u0431\u0435\u0440\u0438 5 \u043c\u043e\u043d\u0435\u0442 \u2014 \u043f\u043e\u043b\u0443\u0447\u0438 \u0449\u0438\u0442!",
+    infoF1: '<span class="formula">F<sub>\u0442\u0440</sub> = \u03bc \u00b7 N</span> \u2014 \u0441\u0438\u043b\u0430 \u0442\u0440\u0435\u043d\u0438\u044f = \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442 \u00d7 \u0441\u0438\u043b\u0430 \u0434\u0430\u0432\u043b\u0435\u043d\u0438\u044f.',
+    infoF2: '<span class="formula">a = \u2212\u03bc \u00b7 g</span> \u2014 \u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435 \u0442\u043e\u0440\u043c\u043e\u0436\u0435\u043d\u0438\u044f.',
+    legendIce: "\u041b\u0451\u0434 \u2014 \u03bc=0.02, \u0441\u043a\u043e\u043b\u044c\u0436\u0435\u043d\u0438\u0435",
+    legendSnow: "\u0421\u043d\u0435\u0433 \u2014 \u03bc=0.06, \u043d\u043e\u0440\u043c\u0430",
+    legendPowder: "\u041f\u0443\u0448\u043d\u044b\u0439 \u2014 \u03bc=0.12, \u0442\u043e\u0440\u043c\u043e\u0436\u0435\u043d\u0438\u0435",
+    legendTree: "\u0414\u0435\u0440\u0435\u0432\u043e \u2014 \u0441\u0442\u043e\u043b\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u0435",
+    legendCoin: "\u041c\u043e\u043d\u0435\u0442\u0430 \u2014 +1, 5 \u0448\u0442 = \u0449\u0438\u0442",
+    tutTitle: "\u041a\u0430\u043a \u0438\u0433\u0440\u0430\u0442\u044c",
+    tutBody: "\u2190 \u2192 \u0438\u043b\u0438 \u043a\u043d\u043e\u043f\u043a\u0438 \u2014 \u043f\u043e\u0432\u043e\u0440\u043e\u0442.\n\u041b\u0451\u0434 \u2014 \u0441\u043a\u043e\u043b\u044c\u0436\u0435\u043d\u0438\u0435, \u043f\u0443\u0448\u043d\u044b\u0439 \u0441\u043d\u0435\u0433 \u2014 \u0442\u043e\u0440\u043c\u043e\u0436\u0435\u043d\u0438\u0435.\n\u0421\u043e\u0431\u0438\u0440\u0430\u0439 \u043c\u043e\u043d\u0435\u0442\u044b, \u0438\u0437\u0431\u0435\u0433\u0430\u0439 \u0434\u0435\u0440\u0435\u0432\u044c\u0435\u0432!\n\u041a\u0430\u0436\u0434\u044b\u0435 5 \u043c\u043e\u043d\u0435\u0442 \u0434\u0430\u044e\u0442 \u0449\u0438\u0442 \u043e\u0442 \u043e\u0434\u043d\u043e\u0433\u043e \u0443\u0434\u0430\u0440\u0430.",
+    tutClose: "\u041f\u043e\u043d\u044f\u0442\u043d\u043e!",
+    surfaceIce: "\u041b\u0451\u0434",
+    surfaceSnow: "\u0421\u043d\u0435\u0433",
+    surfacePowder: "\u041f\u0443\u0448\u043d\u044b\u0439 \u0441\u043d\u0435\u0433",
+    shieldGot: "\u0429\u0438\u0442 \u043f\u043e\u043b\u0443\u0447\u0435\u043d!",
+    shieldUsed: "\u0429\u0438\u0442 \u0441\u043f\u0430\u0441!"
+  };
+
+  document.title = T.pageTitle;
+  document.getElementById("page-title").textContent = "\u26f7 " + T.pageTitle;
+  document.getElementById("hud-coins-label").prepend(document.createTextNode(T.hudCoins + " "));
+  document.getElementById("hud-dist-label").prepend(document.createTextNode(T.hudDist + " "));
+  document.getElementById("hud-speed-label").prepend(document.createTextNode(T.hudSpeed + " "));
+  document.getElementById("hud-mu-label").prepend(document.createTextNode(T.hudMu + " "));
+  document.getElementById("hud-record-label").prepend(document.createTextNode(T.hudRecord + " "));
+  document.getElementById("hud-shield-label").prepend(document.createTextNode(T.hudShield + " "));
+  document.getElementById("friction-label").textContent = T.frictionLabel;
+  document.getElementById("leftBtn").textContent = T.leftBtn;
+  document.getElementById("rightBtn").textContent = T.rightBtn;
+  document.getElementById("btnPause").textContent = T.btnPause;
+  document.getElementById("btnHelp").textContent = T.btnHelp;
+  document.getElementById("info-title").textContent = T.infoTitle;
+  document.getElementById("info-p1").innerHTML = T.infoP1;
+  document.getElementById("info-p2").innerHTML = T.infoP2;
+  document.getElementById("info-f1").innerHTML = T.infoF1;
+  document.getElementById("info-f2").innerHTML = T.infoF2;
+  document.getElementById("legend").innerHTML =
+    '<span><i class="dot" style="background:#81d4fa"></i>' + T.legendIce + '</span>' +
+    '<span><i class="dot" style="background:#e0f7fa"></i>' + T.legendSnow + '</span>' +
+    '<span><i class="dot" style="background:#b3e5fc"></i>' + T.legendPowder + '</span>' +
+    '<span><i class="dot" style="background:#388e3c"></i>' + T.legendTree + '</span>' +
+    '<span><i class="dot" style="background:#ffd700"></i>' + T.legendCoin + '</span>';
+  document.getElementById("tut-title").textContent = T.tutTitle;
+  document.getElementById("tut-body").innerHTML = T.tutBody.split("\n").join("<br>");
+  document.getElementById("tut-close").textContent = T.tutClose;
+
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const H = canvas.height;
+  const STORAGE_KEY = "ski-trenie-record";
+
+  const coinsEl = document.getElementById("coins");
+  const distanceEl = document.getElementById("distance");
+  const speedEl = document.getElementById("speed");
+  const muValEl = document.getElementById("muVal");
+  const recordEl = document.getElementById("record");
+  const shieldEl = document.getElementById("shield");
+  const frictionBarFill = document.getElementById("frictionBarFill");
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+  const overlayEl = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlay-title");
+  const overlayCoins = document.getElementById("overlay-coins");
+  const overlayDist = document.getElementById("overlay-dist");
+  const overlayRecord = document.getElementById("overlay-record");
+  const actionBtn = document.getElementById("actionBtn");
+  const btnPause = document.getElementById("btnPause");
+  const btnSound = document.getElementById("btnSound");
+  const btnHelp = document.getElementById("btnHelp");
+  const tutorialEl = document.getElementById("tutorial");
+
+  const SURFACES = {
+    ice:   { mu: 0.02, friction: 0.985, color: "#81d4fa", label: T.surfaceIce },
+    snow:  { mu: 0.06, friction: 0.94,  color: "#e8f5e9", label: T.surfaceSnow },
+    powder:{ mu: 0.12, friction: 0.88,  color: "#b3e5fc", label: T.surfacePowder }
+  };
+
+  let record = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+  recordEl.textContent = record;
+
+  let soundOn = true;
+  let audioCtx = null;
+  let gameRunning = true;
+  let paused = false;
+  let overlayMode = "gameover";
+
   const player = {
-    x: canvas.width / 2,
-    y: canvas.height - 80,
-    radius: 12,
+    x: W / 2,
+    y: H - 80,
+    radius: 13,
     speedX: 0,
-    baseFriction: 0.94,
-    currentFriction: 0.94
+    baseFriction: SURFACES.snow.friction,
+    currentMu: SURFACES.snow.mu,
+    surfaceLabel: T.surfaceSnow
   };
 
   let distance = 0;
+  let scrollSpeed = 5;
   let coins = 0;
+  let shields = 0;
   let obstacles = [];
   let coinsList = [];
-  let gameRunning = true;
+  let surfaceZones = [];
+  let snowflakes = [];
+  let particles = [];
+  let trail = [];
+  let nextObstacleAt = 60;
+  let nextCoinAt = 40;
+  let nextZoneAt = 0;
+  let keys = { left: false, right: false };
+  let toastText = "";
+  let toastTimer = 0;
 
-  // Интервалы спавна
-  let nextObstacleAt = 0;
-  let nextCoinAt = 0;
-
-  // Управление
-  const keys = { left: false, right: false };
-
-  // Клавиатура
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') keys.left = true;
-    if (e.key === 'ArrowRight') keys.right = true;
-  });
-
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft') keys.left = false;
-    if (e.key === 'ArrowRight') keys.right = false;
-  });
-
-  // Кнопки управления (мышь)
-  leftBtn.addEventListener('mousedown', () => { if (gameRunning) keys.left = true; });
-  leftBtn.addEventListener('mouseup', () => keys.left = false);
-  leftBtn.addEventListener('mouseleave', () => keys.left = false);
-  
-  rightBtn.addEventListener('mousedown', () => { if (gameRunning) keys.right = true; });
-  rightBtn.addEventListener('mouseup', () => keys.right = false);
-  rightBtn.addEventListener('mouseleave', () => keys.right = false);
-
-  // Тач-события для кнопок
-  leftBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (gameRunning) keys.left = true;
-  });
-  leftBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    keys.left = false;
-  });
-  
-  rightBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (gameRunning) keys.right = true;
-  });
-  rightBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    keys.right = false;
-  });
-
-  // Тач-события для canvas
-  canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (!gameRunning) return;
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const canvasWidth = rect.width;
-    
-    if (x < canvasWidth / 2) {
-      keys.left = true;
-    } else {
-      keys.right = true;
-    }
-  });
-
-  canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    keys.left = false;
-    keys.right = false;
-  });
-
-  // Рестарт игры
-  restartBtn.addEventListener('click', restartGame);
-  restartBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    restartGame();
-  });
-
-  function restartGame() {
-    player.x = canvas.width / 2;
-    player.speedX = 0;
-    player.currentFriction = player.baseFriction;
-    distance = 0;
-    coins = 0;
-    obstacles = [];
-    coinsList = [];
-    nextObstacleAt = 0;
-    nextCoinAt = 0;
-    gameRunning = true;
-    gameOverEl.classList.remove('active');
-    coinsEl.textContent = '0';
-    distanceEl.textContent = '0';
+  function getAudio() {
+    if (!soundOn) return null;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
   }
 
-  // Спавн препятствий
-  function spawnObstacle() {
-    const types = ['tree', 'snow', 'trash', 'bush', 'ice'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    const lanes = [100, 200, 300];
-    const x = lanes[Math.floor(Math.random() * lanes.length)];
+  function playTone(freq, dur, vol) {
+    const ac = getAudio();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.frequency.value = freq;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(vol || 0.1, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + dur);
+  }
 
+  function updateSoundBtn() {
+    btnSound.textContent = soundOn ? T.btnSoundOn : T.btnSoundOff;
+    btnSound.classList.toggle("active", soundOn);
+  }
+  updateSoundBtn();
+
+  btnSound.addEventListener("click", () => { soundOn = !soundOn; updateSoundBtn(); });
+  btnHelp.addEventListener("click", () => tutorialEl.classList.remove("hidden"));
+  document.getElementById("tut-close").addEventListener("click", () => {
+    tutorialEl.classList.add("hidden");
+    localStorage.setItem("ski-trenie-seen", "1");
+  });
+  if (localStorage.getItem("ski-trenie-seen")) tutorialEl.classList.add("hidden");
+
+  function setKey(side, val) {
+    keys[side] = val;
+    if (side === "left") leftBtn.classList.toggle("pressed", val);
+    else rightBtn.classList.toggle("pressed", val);
+  }
+
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A" || e.key === "\u0444" || e.key === "\u0424") setKey("left", true);
+    if (e.key === "ArrowRight" || e.key === "d" || e.key === "D" || e.key === "\u0432" || e.key === "\u0412") setKey("right", true);
+    if (e.key === "p" || e.key === "P" || e.key === "Escape") togglePause();
+    if (e.key === "m" || e.key === "M") { soundOn = !soundOn; updateSoundBtn(); }
+    if (e.key === " " && !gameRunning) restartGame();
+  });
+
+  window.addEventListener("keyup", e => {
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A" || e.key === "\u0444" || e.key === "\u0424") setKey("left", false);
+    if (e.key === "ArrowRight" || e.key === "d" || e.key === "D" || e.key === "\u0432" || e.key === "\u0412") setKey("right", false);
+  });
+
+  leftBtn.addEventListener("mousedown", () => { if (gameRunning && !paused) setKey("left", true); });
+  leftBtn.addEventListener("mouseup", () => setKey("left", false));
+  leftBtn.addEventListener("mouseleave", () => setKey("left", false));
+  rightBtn.addEventListener("mousedown", () => { if (gameRunning && !paused) setKey("right", true); });
+  rightBtn.addEventListener("mouseup", () => setKey("right", false));
+  rightBtn.addEventListener("mouseleave", () => setKey("right", false));
+
+  leftBtn.addEventListener("touchstart", e => { e.preventDefault(); if (gameRunning && !paused) setKey("left", true); }, { passive: false });
+  leftBtn.addEventListener("touchend", e => { e.preventDefault(); setKey("left", false); });
+  rightBtn.addEventListener("touchstart", e => { e.preventDefault(); if (gameRunning && !paused) setKey("right", true); }, { passive: false });
+  rightBtn.addEventListener("touchend", e => { e.preventDefault(); setKey("right", false); });
+
+  canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    if (!gameRunning || paused) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    if (x < rect.width / 2) setKey("left", true);
+    else setKey("right", true);
+  }, { passive: false });
+
+  canvas.addEventListener("touchend", e => {
+    e.preventDefault();
+    setKey("left", false);
+    setKey("right", false);
+  });
+
+  function togglePause() {
+    if (!gameRunning) return;
+    paused = !paused;
+    btnPause.textContent = paused ? T.btnResume : T.btnPause;
+    if (paused) {
+      overlayMode = "pause";
+      overlayTitle.textContent = T.pauseTitle;
+      overlayTitle.style.color = "#4cc9f0";
+      overlayCoins.textContent = T.overlayCoins + " " + coins;
+      overlayDist.textContent = T.overlayDist + " " + Math.floor(distance) + " " + T.unitM;
+      overlayRecord.textContent = "";
+      actionBtn.textContent = T.resumeBtn;
+      overlayEl.classList.add("active");
+    } else {
+      overlayEl.classList.remove("active");
+    }
+  }
+
+  btnPause.addEventListener("click", togglePause);
+  actionBtn.addEventListener("click", () => {
+    if (overlayMode === "pause") { paused = false; btnPause.textContent = T.btnPause; overlayEl.classList.remove("active"); }
+    else restartGame();
+  });
+
+  function initSnowflakes() {
+    snowflakes = [];
+    for (let i = 0; i < 50; i++) {
+      snowflakes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: 1 + Math.random() * 2.5,
+        speed: 1 + Math.random() * 2
+      });
+    }
+  }
+
+  function spawnSurfaceZone() {
+    const types = ["ice", "snow", "powder"];
+    const type = types[Math.floor(Math.random() * types.length)];
+    surfaceZones.push({
+      type,
+      y: -120,
+      height: 100 + Math.random() * 80,
+      width: W
+    });
+    nextZoneAt = distance + 120 + Math.random() * 100;
+  }
+
+  function spawnObstacle() {
+    const types = ["tree", "tree", "bush", "trash"];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const lanes = [80, 160, 240, 320];
     obstacles.push({
-      x,
-      y: -40,
-      width: 36,
-      height: 36,
+      x: lanes[Math.floor(Math.random() * lanes.length)],
+      y: -50,
+      width: 34,
+      height: 34,
       type
     });
-
-    nextObstacleAt = distance + 80 + Math.random() * 70;
+    nextObstacleAt = distance + 70 + Math.random() * 60;
   }
 
-  // Спавн монет
   function spawnCoin() {
-    const lanes = [100, 200, 300];
-    const x = lanes[Math.floor(Math.random() * lanes.length)];
-    coinsList.push({ x, y: -30, radius: 14 });
-    nextCoinAt = distance + 50 + Math.random() * 50;
+    const lanes = [60, 140, 220, 300, 360];
+    coinsList.push({
+      x: lanes[Math.floor(Math.random() * lanes.length)],
+      y: -30,
+      radius: 13,
+      spin: Math.random() * 6.28
+    });
+    nextCoinAt = distance + 35 + Math.random() * 45;
   }
 
-  // Обновление
-  function update() {
-    if (!gameRunning) return;
+  function showToast(text) {
+    toastText = text;
+    toastTimer = 90;
+  }
 
-    distance += 1.2;
+  function restartGame() {
+    player.x = W / 2;
+    player.speedX = 0;
+    player.baseFriction = SURFACES.snow.friction;
+    player.currentMu = SURFACES.snow.mu;
+    player.surfaceLabel = T.surfaceSnow;
+    distance = 0;
+    scrollSpeed = 5;
+    coins = 0;
+    shields = 0;
+    obstacles = [];
+    coinsList = [];
+    surfaceZones = [];
+    particles = [];
+    trail = [];
+    nextObstacleAt = 60;
+    nextCoinAt = 40;
+    nextZoneAt = 0;
+    gameRunning = true;
+    paused = false;
+    overlayEl.classList.remove("active");
+    btnPause.textContent = T.btnPause;
+    coinsEl.textContent = "0";
+    distanceEl.textContent = "0";
+    speedEl.textContent = "0";
+    shieldEl.textContent = "0";
+    setKey("left", false);
+    setKey("right", false);
+    initSnowflakes();
+  }
+
+  function circleRectOverlap(cx, cy, cr, rx, ry, rw, rh) {
+    const closestX = Math.max(rx, Math.min(cx, rx + rw));
+    const closestY = Math.max(ry, Math.min(cy, ry + rh));
+    return Math.hypot(cx - closestX, cy - closestY) < cr;
+  }
+
+  function getCurrentSurface() {
+    for (const z of surfaceZones) {
+      if (player.y >= z.y && player.y <= z.y + z.height) return SURFACES[z.type];
+    }
+    return SURFACES.snow;
+  }
+
+  function updateHud() {
+    coinsEl.textContent = coins;
     distanceEl.textContent = Math.floor(distance);
+    speedEl.textContent = (scrollSpeed * 1.2).toFixed(1) + " " + T.unitMs;
+    muValEl.textContent = player.currentMu.toFixed(2);
+    shieldEl.textContent = shields;
+    frictionBarFill.style.width = Math.min(100, player.currentMu / 0.12 * 100) + "%";
+  }
 
+  function hitObstacle() {
+    if (shields > 0) {
+      shields--;
+      showToast(T.shieldUsed);
+      playTone(220, 0.15, 0.12);
+      for (let i = 0; i < 12; i++) {
+        particles.push({
+          x: player.x, y: player.y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          life: 25, color: "#4cc9f0"
+        });
+      }
+      return;
+    }
+    gameOver();
+  }
+
+  function gameOver() {
+    gameRunning = false;
+    overlayMode = "gameover";
+    overlayTitle.textContent = T.gameOverTitle;
+    overlayTitle.style.color = "#ff5252";
+    overlayCoins.textContent = T.overlayCoins + " " + coins;
+    overlayDist.textContent = T.overlayDist + " " + Math.floor(distance) + " " + T.unitM;
+    const dist = Math.floor(distance);
+    if (dist > record) {
+      record = dist;
+      localStorage.setItem(STORAGE_KEY, String(record));
+      recordEl.textContent = record;
+      overlayRecord.textContent = T.newRecord;
+    } else {
+      overlayRecord.textContent = T.bestRecord + " " + record + " " + T.unitM;
+    }
+    actionBtn.textContent = T.restartBtn;
+    overlayEl.classList.add("active");
+    playTone(120, 0.4, 0.15);
+    setKey("left", false);
+    setKey("right", false);
+  }
+
+  function update() {
+    if (!gameRunning || paused) {
+      updateSnowflakes(0.5);
+      return;
+    }
+
+    distance += scrollSpeed * 0.22;
+    scrollSpeed = Math.min(9, 5 + distance * 0.004);
+    updateHud();
+
+    if (distance >= nextZoneAt) spawnSurfaceZone();
     if (distance >= nextObstacleAt) spawnObstacle();
     if (distance >= nextCoinAt) spawnCoin();
 
-    // Движение монет
+    const moveSpeed = scrollSpeed + distance * 0.001;
+
+    for (let i = surfaceZones.length - 1; i >= 0; i--) {
+      surfaceZones[i].y += moveSpeed;
+      if (surfaceZones[i].y > H + 50) surfaceZones.splice(i, 1);
+    }
+
+    const surf = getCurrentSurface();
+    player.baseFriction = surf.friction;
+    player.currentMu = surf.mu;
+    player.surfaceLabel = surf.label;
+
     for (let i = coinsList.length - 1; i >= 0; i--) {
       const c = coinsList[i];
-      c.y += 5 + distance * 0.001;
-      if (c.y > canvas.height + 30) {
-        coinsList.splice(i, 1);
-        continue;
-      }
-      const dx = player.x - c.x;
-      const dy = player.y - c.y;
-      if (Math.hypot(dx, dy) < player.radius + c.radius) {
+      c.y += moveSpeed;
+      c.spin += 0.08;
+      if (c.y > H + 40) { coinsList.splice(i, 1); continue; }
+      if (Math.hypot(player.x - c.x, player.y - c.y) < player.radius + c.radius) {
         coins++;
-        coinsEl.textContent = coins;
+        playTone(880 + coins * 20, 0.08, 0.08);
+        for (let j = 0; j < 6; j++) {
+          particles.push({
+            x: c.x, y: c.y,
+            vx: (Math.random() - 0.5) * 4,
+            vy: (Math.random() - 0.5) * 4,
+            life: 20, color: "#ffd700"
+          });
+        }
+        if (coins % 5 === 0) {
+          shields++;
+          showToast(T.shieldGot);
+          playTone(660, 0.2, 0.1);
+        }
         coinsList.splice(i, 1);
       }
     }
 
-    // Движение препятствий
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
-      o.y += 5 + distance * 0.001;
-      if (o.y > canvas.height + 30) {
+      o.y += moveSpeed;
+      if (o.y > H + 40) { obstacles.splice(i, 1); continue; }
+      if (circleRectOverlap(player.x, player.y, player.radius - 2, o.x, o.y, o.width, o.height)) {
+        hitObstacle();
+        if (!gameRunning) return;
         obstacles.splice(i, 1);
-        continue;
-      }
-
-      const dx = player.x - (o.x + o.width / 2);
-      const dy = player.y - (o.y + o.height / 2);
-      if (Math.abs(dx) < player.radius + o.width / 2 && Math.abs(dy) < player.radius + o.height / 2) {
-        // Лёд не убивает, только меняет трение
-        if (o.type === 'ice') {
-          player.currentFriction = 0.99;
-        } else {
-          // Все остальные препятствия убивают
-          gameOver();
-          return;
-        }
       }
     }
 
-    // Управление и трение
-    if (keys.left) player.speedX = Math.max(player.speedX - 0.5, -8);
-    if (keys.right) player.speedX = Math.min(player.speedX + 0.5, 8);
-    
-    player.speedX *= player.currentFriction;
-    player.currentFriction = player.baseFriction;
+    const accel = player.currentMu > 0.08 ? 0.45 : 0.55;
+    if (keys.left) player.speedX = Math.max(player.speedX - accel, -9);
+    if (keys.right) player.speedX = Math.min(player.speedX + accel, 9);
 
+    player.speedX *= player.baseFriction;
     player.x += player.speedX;
-    player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-  }
+    player.x = Math.max(player.radius + 4, Math.min(W - player.radius - 4, player.x));
 
-  // Game Over
-  function gameOver() {
-    gameRunning = false;
-    finalCoinsEl.textContent = coins;
-    finalDistanceEl.textContent = Math.floor(distance);
-    gameOverEl.classList.add('active');
-  }
-
-  // Рендер
-  function draw() {
-    ctx.fillStyle = '#bbdefb';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Движущиеся снежные полосы
-    ctx.fillStyle = '#e3f2fd';
-    for (let i = 0; i < 5; i++) {
-      const y = (distance * 1.2 + i * 130) % (canvas.height + 130) - 65;
-      ctx.fillRect(0, y, canvas.width, 3);
+    if (Math.abs(player.speedX) > 0.5) {
+      trail.push({ x: player.x, y: player.y + 8, alpha: 1 });
+      if (trail.length > 20) trail.shift();
     }
 
-    // Монеты
-    for (const c of coinsList) {
+    trail.forEach(t => { t.alpha *= 0.88; });
+    trail = trail.filter(t => t.alpha > 0.05);
+
+    particles = particles.filter(p => {
+      p.x += p.vx; p.y += p.vy; p.life--;
+      return p.life > 0;
+    });
+
+    if (toastTimer > 0) toastTimer--;
+    updateSnowflakes(1);
+  }
+
+  function updateSnowflakes(mul) {
+    for (const s of snowflakes) {
+      s.y += s.speed * mul;
+      s.x += Math.sin(s.y * 0.02) * 0.3;
+      if (s.y > H) { s.y = -5; s.x = Math.random() * W; }
+    }
+  }
+
+  function drawSkier(x, y, tilt) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt * 0.04);
+
+    ctx.strokeStyle = "#37474f";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-14, 6); ctx.lineTo(14, 6);
+    ctx.stroke();
+
+    ctx.fillStyle = "#e91e63";
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 8, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ff6090";
+    ctx.beginPath();
+    ctx.arc(0, -10, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#37474f";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-6, -4); ctx.lineTo(-12, 2);
+    ctx.moveTo(6, -4); ctx.lineTo(12, 2);
+    ctx.stroke();
+
+    if (shields > 0) {
+      ctx.strokeStyle = "rgba(76,201,240,0.7)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#FFD700';
+      ctx.arc(0, -2, 18, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawObstacle(o) {
+    const cx = o.x + o.width / 2;
+    const cy = o.y + o.height / 2;
+    if (o.type === "tree") {
+      ctx.fillStyle = "#5d4037";
+      ctx.fillRect(o.x + 12, o.y + 16, 10, 18);
+      ctx.fillStyle = "#2e7d32";
+      ctx.beginPath();
+      ctx.arc(cx, o.y + 12, 16, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#FFA500';
+      ctx.fillStyle = "#388e3c";
+      ctx.beginPath();
+      ctx.arc(cx, o.y + 6, 11, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (o.type === "bush") {
+      ctx.fillStyle = "#43a047";
+      ctx.beginPath();
+      ctx.arc(cx, cy, o.width / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = "#795548";
+      ctx.fillRect(o.x + 4, o.y, o.width - 8, o.height);
+      ctx.fillStyle = "#5d4037";
+      ctx.fillRect(o.x + 2, o.y - 4, o.width - 4, 8);
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = "#90caf9";
+    ctx.fillRect(0, 0, W, H);
+
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+    skyGrad.addColorStop(0, "#64b5f6");
+    skyGrad.addColorStop(1, "#bbdefb");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    for (const z of surfaceZones) {
+      const s = SURFACES[z.type];
+      ctx.fillStyle = s.color;
+      ctx.globalAlpha = 0.55;
+      ctx.fillRect(0, z.y, z.width, z.height);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText(s.label + "  \u03bc=" + s.mu.toFixed(2), 8, z.y + 18);
+    }
+
+    ctx.fillStyle = "#e3f2fd";
+    for (let i = 0; i < 6; i++) {
+      const y = (distance * 1.5 + i * 110) % (H + 110) - 55;
+      ctx.fillRect(0, y, W, 2);
+    }
+
+    for (const s of snowflakes) {
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const c of coinsList) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.scale(Math.cos(c.spin) * 0.3 + 0.7, 1);
+      ctx.beginPath();
+      ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFD700";
+      ctx.fill();
+      ctx.strokeStyle = "#FFA500";
       ctx.lineWidth = 2;
       ctx.stroke();
+      ctx.restore();
+    }
+
+    for (const o of obstacles) drawObstacle(o);
+
+    for (const t of trail) {
+      ctx.fillStyle = "rgba(255,255,255," + (t.alpha * 0.4) + ")";
       ctx.beginPath();
-      ctx.arc(c.x - 5, c.y - 5, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
+      ctx.arc(t.x, t.y, 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Препятствия
-    for (const o of obstacles) {
-      if (o.type === 'tree') {
-        ctx.fillStyle = '#388e3c';
-        ctx.fillRect(o.x, o.y, o.width, o.height);
-        ctx.fillStyle = '#1b5e20';
-        ctx.beginPath();
-        ctx.arc(o.x + o.width/2, o.y, 18, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (o.type === 'snow') {
-        ctx.fillStyle = '#e0f7fa';
-        ctx.beginPath();
-        ctx.arc(o.x + o.width/2, o.y + o.height/2, o.width/2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#b2ebf2';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else if (o.type === 'trash') {
-        ctx.fillStyle = '#795548';
-        ctx.fillRect(o.x, o.y, o.width, o.height);
-        ctx.fillStyle = '#5d4037';
-        ctx.fillRect(o.x + 6, o.y + 6, o.width - 12, 6);
-      } else if (o.type === 'bush') {
-        ctx.fillStyle = '#4caf50';
-        ctx.beginPath();
-        ctx.arc(o.x + o.width/2, o.y + o.height/2, o.width/2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (o.type === 'ice') {
-        ctx.fillStyle = '#81d4fa';
-        ctx.beginPath();
-        ctx.arc(o.x + o.width/2, o.y + o.height/2, o.width/2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#4fc3f7';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
+    for (const p of particles) {
+      ctx.globalAlpha = p.life / 25;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    drawSkier(player.x, player.y, player.speedX);
+
+    if (toastTimer > 0) {
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(W / 2 - 90, 50, 180, 28);
+      ctx.fillStyle = "#ffd166";
+      ctx.font = "bold 13px Segoe UI, Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(toastText, W / 2, 69);
+      ctx.textAlign = "left";
     }
 
-    // Игрок
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-    ctx.fillStyle = '#e91e63';
-    ctx.fill();
-    ctx.strokeStyle = '#c2185b';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(0, 0, W, 28);
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px Segoe UI, Arial";
+    ctx.fillText(player.surfaceLabel + "  |  \u03bc = " + player.currentMu.toFixed(2), 10, 18);
   }
 
-  // Игровой цикл
   function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
   }
 
+  restartGame();
   gameLoop();
+})();
 </script>
-
 </body>
 </html>
